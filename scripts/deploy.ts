@@ -1,4 +1,5 @@
 import { ethers } from 'hardhat';
+import { upgrades } from 'hardhat';
 import { Contract, ContractFactory } from 'ethers';
 
 async function main(): Promise<void> {
@@ -7,13 +8,11 @@ async function main(): Promise<void> {
   const L1MantleToken: ContractFactory = await ethers.getContractFactory(
     'L1MantleToken',
   );
-  const l1MantleToken: Contract = await L1MantleToken.deploy();
-  await l1MantleToken.deployed();
 
-  const toMint = ethers.utils.parseEther("1000");
-  // await l1MantleToken.initialize(toMint, deployer.address);
+  // 0x0265B3921E3226aF7B2Fc431385b4157E0c762Db
+  const l1MantleToken = await upgrades.deployProxy(L1MantleToken, [10000000000000000000000000000n, 0x0265B3921E3226aF7B2Fc431385b4157E0c762Db], { initializer: 'initialize' })
 
-  console.log('l1MantleToken deployed to: ', l1MantleToken.address);
+  console.log(l1MantleToken.address, " l1MantleToken(proxy) address")
 }
 
 main()

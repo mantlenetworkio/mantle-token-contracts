@@ -2,6 +2,7 @@ import { config as dotenvConfig } from "dotenv";
 import { resolve } from "path";
 import { HardhatUserConfig } from "hardhat/config";
 import { NetworkUserConfig } from "hardhat/types";
+import '@openzeppelin/hardhat-upgrades';
 import "@typechain/hardhat";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
@@ -60,7 +61,9 @@ const config: HardhatUserConfig = {
     },
   },
   etherscan: {
-    apiKey: ETHERSCAN_API_KEY,
+    apiKey: {
+      goerli: ETHERSCAN_API_KEY,
+    }
   },
   gasReporter: {
     enabled: process.env.REPORT_GAS ? true : false,
