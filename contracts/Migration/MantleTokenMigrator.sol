@@ -4,9 +4,11 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract MantleTokenMigrator is Ownable {
     using SafeMath for uint256;
+    using SafeERC20 for IERC20;
 
     address public governor;
 
@@ -48,14 +50,14 @@ contract MantleTokenMigrator is Ownable {
 
         uint256 amount = _amount.mul(CONVERATION_NUMERATOR).div(CONVERATION_DENOMINATOR);
 
-        oldMantle.transferFrom(msg.sender, address(this), _amount);
+        oldMantle.safeTransferFrom(msg.sender, address(this), _amount);
 
         _send(_amount, amount);
     }
 
     // deposit newToken here
     function deposit(uint256 _amount) external {
-        IERC20(newMantle).transferFrom(msg.sender, address(this), _amount);
+        IERC20(newMantle).safeTransferFrom(msg.sender, address(this), _amount);
 
         newMantleAmountDeposited = newMantleAmountDeposited + _amount;
         newMantleAmountRemained = newMantleAmountRemained + _amount;
@@ -68,7 +70,7 @@ contract MantleTokenMigrator is Ownable {
         newMantleAmountRemained = newMantleAmountRemained - toAmount;
         require(newMantleAmountRemained >= 0, "Insufficient: not sufficient new-mantle");
 
-        newMantle.transfer(msg.sender, toAmount);
+        newMantle.safeTransfer(msg.sender, toAmount);
     }
 
     /* ========== OWNABLE ========== */
@@ -115,6 +117,6 @@ contract MantleTokenMigrator is Ownable {
         }
 
         // transfer the token from address of this contract
-        tokenContract.transfer(recipient, amount);
+        tokenContract.safeTransfer(recipient, amount);
     }
 }
