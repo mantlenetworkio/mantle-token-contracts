@@ -19,7 +19,7 @@ contract L1MantleToken is
     TransferAndCallToken
 {
     string private constant NAME = "Mantle";
-    string private constant SYMBOL = "mantle";
+    string private constant SYMBOL = "MNT";
     /// @notice The minimum amount of time that must elapse before a mint is allowed
     uint256 public constant MIN_MINT_INTERVAL = 365 days;
     /// @notice The amount that can be can be minted - denominator
