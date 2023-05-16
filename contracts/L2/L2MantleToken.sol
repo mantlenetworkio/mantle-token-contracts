@@ -26,6 +26,8 @@ contract L2MantleToken is
 
     /// events
     event EnableGovernance(address from, bool governanceEnabled);
+    event Mint(address indexed _account, uint256 _amount);
+    event Burn(address indexed _account, uint256 _amount);
 
     /// @custom:oz-upgrades-unsafe-allow constructor
     constructor() {
@@ -46,13 +48,13 @@ contract L2MantleToken is
         _transferOwnership(_owner);
     }
 
-    modifier onlyL2MantleBridge() {
+    modifier onlyL2Bridge() {
         require(msg.sender == l2MantleBridge, "L2MantleToken: only l2 mantle bridge");
         _;
     }
 
     modifier onlyGovernance() {
-        require(msg.sender == l2MantleBridge, "L2MantleToken: only governance");
+        require(msg.sender == governance, "L2MantleToken: only governance");
         _;
     }
 
@@ -62,13 +64,17 @@ contract L2MantleToken is
     }
 
     /// @notice Allow the L2 Mantle Bridge to mint tokens
-    function bridgeMint(address account, uint256 amount) public onlyL2MantleBridge {
-        _mint(account, amount);
+    function mint(address _to, uint256 _amount) public onlyL2Bridge {
+        _mint(_to, _amount);
+
+        emit Mint(_to, _amount);
     }
 
     /// @notice Allow the L2 Mantle Bridge to burn tokens
-    function bridgeBurn(address account, uint256 amount) public onlyL2MantleBridge {
-        _burn(account, amount);
+    function burn(address _from, uint256 _amount) public onlyL2Bridge {
+        _burn(_from, _amount);
+
+        emit Burn(_from, _amount);
     }
 
     /// @notice Enable governance on L2

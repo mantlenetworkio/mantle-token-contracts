@@ -10,95 +10,79 @@ contract MantleTokenMigrator is Ownable {
     using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
-    address public governor;
-
-    /// @notice The amount that can be can be minted - denominator
+    /// @notice The amount that can be can be migrated - denominator
     uint256 public constant CONVERATION_DENOMINATOR = 100;
-    /// @notice The amount that can be can be minted - numerator
+    /// @notice The amount that can be can be migrated - numerator
     uint256 public constant CONVERATION_NUMERATOR = 314;
 
     /* ========== MIGRATION ========== */
     /* ========== STATE VARIABLES ========== */
 
-    IERC20 public immutable oldMantle;
-    IERC20 public newMantle;
+    IERC20 public immutable bit;
+    IERC20 public mantle;
 
     bool public shutdown;
 
-    uint256 public oldMantleAmountMigrated;
-    uint256 public newMantleAmountDeposited;
-    uint256 public newMantleAmountMigrated;
-    uint256 public newMantleAmountRemained;
+    uint256 public bitAmountMigrated;
+    uint256 public mantleAmountDeposited;
+    uint256 public mantleAmountMigrated;
+    uint256 public mantleAmountRemained;
 
-    modifier onlyGovernor() {
-        require(msg.sender == governor, "Caller is not a governor");
-        _;
-    }
-
-    constructor(address _oldMantle, address _governor) {
-        require(_oldMantle != address(0), "Zero address: old Mantle");
-        oldMantle = IERC20(_oldMantle);
-
-        governor = _governor;
+    constructor(address _bit) {
+        require(_bit != address(0), "Zero address: bit");
+        bit = IERC20(_bit);
     }
 
     /* ========== MIGRATION ========== */
 
-    // migrate oldMantle to newMantle
+    // migrate bit to mantle
     function migrate(uint256 _amount) external {
         require(!shutdown, "Shut down");
 
-        uint256 amount = _amount.mul(CONVERATION_NUMERATOR).div(CONVERATION_DENOMINATOR);
+        uint256 amount = (_amount * CONVERATION_NUMERATOR) / CONVERATION_DENOMINATOR;
 
-        oldMantle.safeTransferFrom(msg.sender, address(this), _amount);
+        bit.safeTransferFrom(msg.sender, address(this), _amount);
 
         _send(_amount, amount);
     }
 
-    // deposit newToken here
+    // deposit mantle here
     function deposit(uint256 _amount) external {
-        IERC20(newMantle).safeTransferFrom(msg.sender, address(this), _amount);
+        IERC20(mantle).safeTransferFrom(msg.sender, address(this), _amount);
 
-        newMantleAmountDeposited = newMantleAmountDeposited + _amount;
-        newMantleAmountRemained = newMantleAmountRemained + _amount;
+        mantleAmountDeposited = mantleAmountDeposited + _amount;
+        mantleAmountRemained = mantleAmountRemained + _amount;
     }
 
     // send token
     function _send(uint256 fromAmount, uint256 toAmount) internal {
-        oldMantleAmountMigrated = oldMantleAmountMigrated + fromAmount;
-        newMantleAmountMigrated = newMantleAmountMigrated + toAmount;
-        newMantleAmountRemained = newMantleAmountRemained - toAmount;
-        require(newMantleAmountRemained >= 0, "Insufficient: not sufficient new-mantle");
+        bitAmountMigrated = bitAmountMigrated + fromAmount;
+        mantleAmountMigrated = mantleAmountMigrated + toAmount;
+        mantleAmountRemained = mantleAmountRemained - toAmount;
+        require(mantleAmountRemained >= 0, "Insufficient: not sufficient mantle");
 
-        newMantle.safeTransfer(msg.sender, toAmount);
+        mantle.safeTransfer(msg.sender, toAmount);
     }
 
     /* ========== OWNABLE ========== */
 
     // halt migrations
-    function halt() external onlyGovernor {
+    function halt() external onlyOwner {
         shutdown = !shutdown;
     }
 
-    // set Governor
-    function setGovernor(address _governor) external onlyOwner {
-        require(_governor != address(0), "Zero address: new mantle");
+    // set mantle address
+    function setMantle(address _mantle) external onlyOwner {
+        require(address(mantle) == address(0), "Already set");
+        require(_mantle != address(0), "Zero address: mantle");
 
-        governor = _governor;
+        mantle = IERC20(_mantle);
     }
 
-    // set newMantle address
-    function setNewMantle(address _newMantle) external onlyGovernor {
-        require(address(newMantle) == address(0), "Already set");
-        require(_newMantle != address(0), "Zero address: new mantle");
-
-        newMantle = IERC20(_newMantle);
-    }
-
-    // function to allow owner to withdraw funds(tokens except old mantle) sent directly to contract
-    function withdrawToken(address tokenAddress, uint256 amount, address recipient) external onlyGovernor {
+    // function to allow owner to withdraw funds(tokens except bit) sent directly to contract
+    function withdrawToken(address tokenAddress, uint256 amount, address recipient) external onlyOwner {
         require(tokenAddress != address(0), "Token address cannot be 0x0");
-        require(tokenAddress != address(oldMantle), "Cannot withdraw: old-mantle");
+        require(tokenAddress != address(bit), "Cannot withdraw: bit");
         require(amount > 0, "Withdraw value must be greater than 0");
         if (recipient == address(0)) {
             recipient = msg.sender; // if no address is specified the value will will be withdrawn to Owner
@@ -111,9 +95,9 @@ contract MantleTokenMigrator is Ownable {
         }
 
         // update new mantle token balance
-        if (tokenAddress == address(newMantle)) {
-            newMantleAmountDeposited = newMantleAmountDeposited - amount;
-            newMantleAmountRemained = newMantleAmountRemained - amount;
+        if (tokenAddress == address(mantle)) {
+            mantleAmountDeposited = mantleAmountDeposited - amount;
+            mantleAmountRemained = mantleAmountRemained - amount;
         }
 
         // transfer the token from address of this contract
