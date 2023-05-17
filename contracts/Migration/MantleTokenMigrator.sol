@@ -2,18 +2,19 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract MantleTokenMigrator is Ownable {
-    using SafeMath for uint256;
     using SafeERC20 for IERC20;
 
     /// @notice The amount that can be can be migrated - denominator
-    uint256 public constant CONVERATION_DENOMINATOR = 100;
+    uint256 public constant CONVERSION_DENOMINATOR = 100;
     /// @notice The amount that can be can be migrated - numerator
-    uint256 public constant CONVERATION_NUMERATOR = 314;
+    uint256 public constant CONVERSION_NUMERATOR = 314;
+
+    /// Events
+    event Deposit(address from, uint256 amount);
 
     /* ========== MIGRATION ========== */
     /* ========== STATE VARIABLES ========== */
@@ -21,7 +22,7 @@ contract MantleTokenMigrator is Ownable {
     IERC20 public immutable bit;
     IERC20 public mantle;
 
-    bool public shutdown;
+    bool public enabled;
 
     uint256 public bitAmountMigrated;
     uint256 public mantleAmountMigrated;
@@ -34,41 +35,44 @@ contract MantleTokenMigrator is Ownable {
     /* ========== MIGRATION ========== */
 
     // migrate bit to mantle
-    function migrate(uint256 _amount) external {
-        require(!shutdown, "Shut down");
+    function migrate(uint256 _bitAmount) external {
+        require(enabled, "Migration: migrate enabled");
 
-        uint256 amount = (_amount * CONVERATION_NUMERATOR) / CONVERATION_DENOMINATOR;
+        uint256 mantleAmount = (_bitAmount * CONVERSION_NUMERATOR) / CONVERSION_DENOMINATOR;
 
-        bit.safeTransferFrom(msg.sender, address(this), _amount);
+        bit.safeTransferFrom(msg.sender, address(this), _bitAmount);
 
-        _send(_amount, amount);
+        bitAmountMigrated = bitAmountMigrated + _bitAmount;
+        mantleAmountMigrated = mantleAmountMigrated + mantleAmount;
+        uint256 mantleAmountBalance = IERC20(mantle).balanceOf(address(this));
+        require(mantleAmount <= mantleAmountBalance, "Insufficient: not sufficient mantle");
+
+        mantle.safeTransfer(msg.sender, mantleAmount);
     }
 
     // deposit mantle here
     function deposit(uint256 _amount) external {
+        require(address(mantle) != address(0), "Zero address: mantle");
         IERC20(mantle).safeTransferFrom(msg.sender, address(this), _amount);
-    }
 
-    // send token
-    function _send(uint256 fromAmount, uint256 toAmount) internal {
-        bitAmountMigrated = bitAmountMigrated + fromAmount;
-        mantleAmountMigrated = mantleAmountMigrated + toAmount;
-        uint256 mantleAmountBalance = IERC20(mantle).balanceOf(address(this));
-        require(toAmount <= mantleAmountBalance, "Insufficient: not sufficient mantle");
-
-        mantle.safeTransfer(msg.sender, toAmount);
+        emit Deposit(msg.sender, _amount);
     }
 
     /* ========== OWNABLE ========== */
 
-    // halt migrations
-    function halt() external onlyOwner {
-        shutdown = !shutdown;
+    // enable migrations
+    function unpause() external onlyOwner {
+        enabled = true;
+    }
+
+    // disable migrations
+    function pause() external onlyOwner {
+        enabled = false;
     }
 
     // set mantle address
     function setMantle(address _mantle) external onlyOwner {
-        require(address(mantle) == address(0), "Already set");
+        require(address(mantle) == address(0), "Already set, only can be set once");
         require(_mantle != address(0), "Zero address: mantle");
 
         mantle = IERC20(_mantle);
