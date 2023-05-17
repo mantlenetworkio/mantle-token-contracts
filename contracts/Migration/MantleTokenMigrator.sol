@@ -24,9 +24,7 @@ contract MantleTokenMigrator is Ownable {
     bool public shutdown;
 
     uint256 public bitAmountMigrated;
-    uint256 public mantleAmountDeposited;
     uint256 public mantleAmountMigrated;
-    uint256 public mantleAmountRemained;
 
     constructor(address _bit) {
         require(_bit != address(0), "Zero address: bit");
@@ -49,17 +47,14 @@ contract MantleTokenMigrator is Ownable {
     // deposit mantle here
     function deposit(uint256 _amount) external {
         IERC20(mantle).safeTransferFrom(msg.sender, address(this), _amount);
-
-        mantleAmountDeposited = mantleAmountDeposited + _amount;
-        mantleAmountRemained = mantleAmountRemained + _amount;
     }
 
     // send token
     function _send(uint256 fromAmount, uint256 toAmount) internal {
         bitAmountMigrated = bitAmountMigrated + fromAmount;
         mantleAmountMigrated = mantleAmountMigrated + toAmount;
-        mantleAmountRemained = mantleAmountRemained - toAmount;
-        require(mantleAmountRemained >= 0, "Insufficient: not sufficient mantle");
+        uint256 mantleAmountBalance = IERC20(mantle).balanceOf(address(this));
+        require(toAmount <= mantleAmountBalance, "Insufficient: not sufficient mantle");
 
         mantle.safeTransfer(msg.sender, toAmount);
     }
@@ -92,12 +87,6 @@ contract MantleTokenMigrator is Ownable {
         uint256 contractBalance = tokenContract.balanceOf(address(this));
         if (amount > contractBalance) {
             amount = contractBalance; // set the withdrawal amount equal to balance within the account.
-        }
-
-        // update new mantle token balance
-        if (tokenAddress == address(mantle)) {
-            mantleAmountDeposited = mantleAmountDeposited - amount;
-            mantleAmountRemained = mantleAmountRemained - amount;
         }
 
         // transfer the token from address of this contract
