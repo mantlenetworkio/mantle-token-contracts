@@ -137,10 +137,9 @@ contract MantleTokenMigrator is Ownable {
         mantle = IERC20(_mantle);
     }
 
-    // function to allow owner to withdraw funds(tokens except bit) sent directly to contract
-    function withdrawToken(address tokenAddress, uint256 amount, address recipient) external onlyOwner { // rename to sweepToken
+    // function to allow owner to withdraw funds sent directly to contract
+    function withdrawToken(address tokenAddress, uint256 amount, address recipient) external onlyOwner {
         require(tokenAddress != address(0), "Token address cannot be 0x0");
-        require(tokenAddress != address(bit), "Cannot withdraw: bit");
         require(amount > 0, "Withdraw value must be greater than 0");
         if (recipient == address(0)) {
             recipient = msg.sender; // if no address is specified the value will will be withdrawn to Owner
