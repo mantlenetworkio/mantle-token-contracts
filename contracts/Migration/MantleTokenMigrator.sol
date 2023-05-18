@@ -18,9 +18,12 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 contract MantleTokenMigrator is Ownable {
     using SafeERC20 for IERC20;
 
-    /// @notice The amount that can be can be migrated - denominator
+    /**
+     *  The conversion ratio is 3.14 = 314/100 (~Pi) and is specified by a denominator/numerator. 
+     */
+    /** Denominator of conversion ratio. */ 
     uint256 public constant CONVERSION_DENOMINATOR = 100;
-    /// @notice The amount that can be can be migrated - numerator
+    /** Numerator of conversion ratio. */ 
     uint256 public constant CONVERSION_NUMERATOR = 314;
 
     /// Events
@@ -29,12 +32,17 @@ contract MantleTokenMigrator is Ownable {
     /* ========== MIGRATION ========== */
     /* ========== STATE VARIABLES ========== */
 
+    /** The ERC20 BIT contract. Can only be set once. */
     IERC20 public immutable bit;
+    /** The ERC-20 MNT contract. */
     IERC20 public mantle;
 
+    /** Whether conversion is enabled or not. */
     bool public enabled;
 
+    /**  Amount of BIT tokens converted by BIT token holders so far. */
     uint256 public bitAmountMigrated;
+    /** Amount of MNT tokens credited to BIT token holders who have converted BIT tokens. */
     uint256 public mantleAmountMigrated;
 
     constructor(address _bit) {
