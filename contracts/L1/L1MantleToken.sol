@@ -7,7 +7,6 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/draft-ERC20PermitUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20VotesUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "./TransferAndCallToken.sol";
 
 contract L1MantleToken is
     Initializable,
@@ -15,8 +14,7 @@ contract L1MantleToken is
     ERC20BurnableUpgradeable,
     OwnableUpgradeable,
     ERC20PermitUpgradeable,
-    ERC20VotesUpgradeable,
-    TransferAndCallToken
+    ERC20VotesUpgradeable
 {
     string private constant NAME = "Mantle";
     string private constant SYMBOL = "MNT";
@@ -25,7 +23,7 @@ contract L1MantleToken is
     /// @notice The amount that can be can be minted - denominator
     uint256 public constant MINT_CAP_DENOMINATOR = 10_000;
     /// @notice The amount that can be can be minted - numerator
-    uint256 public mintCapNumerator = 0;
+    uint256 public mintCapNumerator;
     /// @notice The time at which the next mint is allowed - timestamp
     uint256 public nextMint;
 
@@ -40,6 +38,8 @@ contract L1MantleToken is
     function initialize(uint256 _initialSupply, address _owner) public initializer {
         require(_initialSupply != 0, "MANTLE: ZERO_INITIAL_SUPPLY");
         require(_owner != address(0), "MANTLE: ZERO_OWNER");
+
+        mintCapNumerator = 0;
 
         __ERC20_init(NAME, SYMBOL);
         __ERC20Burnable_init();
