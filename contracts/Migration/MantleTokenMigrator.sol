@@ -67,6 +67,9 @@ contract MantleTokenMigrator is Ownable {
      *  @dev    The token conversion comprises the following steps:
      *          1.  transfer _bitAmount of BIT (`bit` ERC-20 token contract ) from `msg.sender` to `this`.
      *          2.  transfer the corresponding amount of MNT (`mantle` ERC-20 token contract) from `this` to `msg.sender`.
+     *          As we are using a decimal conversion ratio, a small amount of MNT may be lost due to rounding. 
+     *          For instance, converting 101 BIT results to MNT should yield 317.14 MNT which with interger division
+     *          is rounded down to 317. The amount lost a conversion is negilgible and always less than 1**-18 MNT.
      *
      *  @param  _bitAmount  The amount of BIT tokens to convert.
      *
