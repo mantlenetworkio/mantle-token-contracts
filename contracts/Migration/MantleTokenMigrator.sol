@@ -45,6 +45,17 @@ contract MantleTokenMigrator is Ownable {
     /** Amount of MNT tokens credited to BIT token holders who have converted BIT tokens. */
     uint256 public mantleAmountMigrated;
 
+    /**
+     * Set the address of the BIT token ERC-20 contract.
+     *
+     * @dev     An arbitrary address can be passed as argument and will be
+     *          cast to en ERC20 contract. 
+     *
+     * @param   _bit    The address of the ERC-20 BIT token contract.
+     * 
+     * Requirements:
+     * - `_bit` cannot be the zero address.
+     */
     constructor(address _bit) {
         require(_bit != address(0), "Zero address: bit");
         bit = IERC20(_bit);
