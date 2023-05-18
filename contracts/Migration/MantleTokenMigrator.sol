@@ -14,7 +14,8 @@ contract MantleTokenMigrator is Ownable {
     uint256 public constant CONVERSION_NUMERATOR = 314;
 
     /// Events
-    event Deposit(address from, uint256 amount);
+    event Deposit(address indexed from, uint256 amount);
+    event Migrate(address indexed from, uint256 mantleAmount);
 
     /* ========== MIGRATION ========== */
     /* ========== STATE VARIABLES ========== */
@@ -48,6 +49,7 @@ contract MantleTokenMigrator is Ownable {
         require(mantleAmount <= mantleAmountBalance, "Insufficient: not sufficient mantle");
 
         mantle.safeTransfer(msg.sender, mantleAmount);
+        emit Migrate(msg.sender, mantleAmount);
     }
 
     // deposit mantle here
@@ -79,7 +81,7 @@ contract MantleTokenMigrator is Ownable {
     }
 
     // function to allow owner to withdraw funds(tokens except bit) sent directly to contract
-    function withdrawToken(address tokenAddress, uint256 amount, address recipient) external onlyOwner {
+    function withdrawToken(address tokenAddress, uint256 amount, address recipient) external onlyOwner { // rename to sweepToken
         require(tokenAddress != address(0), "Token address cannot be 0x0");
         require(tokenAddress != address(bit), "Cannot withdraw: bit");
         require(amount > 0, "Withdraw value must be greater than 0");
