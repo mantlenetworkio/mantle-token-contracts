@@ -68,6 +68,8 @@ contract MantleTokenMigrator is Ownable {
      *          1.  transfer _bitAmount of BIT (`bit` ERC-20 token contract ) from `msg.sender` to `this`.
      *          2.  transfer the corresponding amount of MNT (`mantle` ERC-20 token contract) from `this` to `msg.sender`.
      *
+     *  @param  _bitAmount  The amount of BIT tokens to convert.
+     *
      *  Requirements:
      *      - conversion must be enabled
      *      - the balance of `this` contract must be larger or equal than the amount of MNT to transfer.
