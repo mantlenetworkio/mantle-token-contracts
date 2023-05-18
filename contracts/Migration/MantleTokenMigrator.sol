@@ -5,6 +5,16 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
+/**
+ * @title   Contract to convert BIT (BITDAO) tokens to MNT (Mantle) tokens.
+ *
+ * @notice  Enable BIT token holders to convert their BIT tokens into MNT tokens. 
+ *
+ * @dev     Provide the following functionalities:
+ *          1. Deposit MNT (Mantle) tokens into this contract.
+ *          2. Convert BIT tokens to MNT tokens using a pre-defined convertion rate 1 BIT = 3.14 MNT.
+ *          3. Enable/disable conversion.
+ */
 contract MantleTokenMigrator is Ownable {
     using SafeERC20 for IERC20;
 
