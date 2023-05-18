@@ -36,6 +36,9 @@ contract MantleTokenMigrator is Ownable {
     /* ========== MIGRATION ========== */
 
     // migrate bit to mantle
+    // CONVERSION_RATIO = CONVERSION_NUMERATOR / CONVERSION_DENOMINATOR
+    // Due to CONVERSION_RATIO is decimal, there may be a small loss of tokens in the migration
+    // The amount of loss is less than 10^-18 MNT.
     function migrate(uint256 _bitAmount) external {
         require(enabled, "Migration: migrate enabled");
 
@@ -80,10 +83,9 @@ contract MantleTokenMigrator is Ownable {
         mantle = IERC20(_mantle);
     }
 
-    // function to allow owner to withdraw funds(tokens except bit) sent directly to contract
-    function withdrawToken(address tokenAddress, uint256 amount, address recipient) external onlyOwner { // rename to sweepToken
+    // function to allow owner to withdraw funds sent directly to contract
+    function withdrawToken(address tokenAddress, uint256 amount, address recipient) external onlyOwner {
         require(tokenAddress != address(0), "Token address cannot be 0x0");
-        require(tokenAddress != address(bit), "Cannot withdraw: bit");
         require(amount > 0, "Withdraw value must be greater than 0");
         if (recipient == address(0)) {
             recipient = msg.sender; // if no address is specified the value will will be withdrawn to Owner
