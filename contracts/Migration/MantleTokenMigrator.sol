@@ -46,24 +46,34 @@ contract MantleTokenMigrator is Ownable {
     uint256 public mantleAmountMigrated;
 
     /**
-     * Set the address of the BIT token ERC-20 contract.
+     *  Set the address of the BIT token ERC-20 contract.
      *
-     * @dev     An arbitrary address can be passed as argument and will be
+     *  @dev    An arbitrary address can be passed as argument and will be
      *          cast to en ERC20 contract. 
      *
-     * @param   _bit    The address of the ERC-20 BIT token contract.
+     *  @param  _bit    The address of the ERC-20 BIT token contract.
      * 
-     * Requirements:
-     * - `_bit` cannot be the zero address.
+     *  Requirements:
+     *      - `_bit` cannot be the zero address.
      */
     constructor(address _bit) {
         require(_bit != address(0), "Zero address: bit");
         bit = IERC20(_bit);
     }
 
-    /* ========== MIGRATION ========== */
-
-    // migrate bit to mantle
+    /**
+     *  Enable users to convert BIT token to MNT tokens.
+     *
+     *  @dev    The token conversion comprises the following steps:
+     *          1.  transfer _bitAmount of BIT (`bit` ERC-20 token contract ) from `msg.sender` to `this`.
+     *          2.  transfer the corresponding amount of MNT (`mantle` ERC-20 token contract) from `this` to `msg.sender`.
+     *
+     *  Requirements:
+     *      - conversion must be enabled
+     *      - the balance of `this` contract must be larger or equal than the amount of MNT to transfer.
+     *
+     *  @param  _bitAmount  The amount of BIT tokens to convert.
+     */
     function migrate(uint256 _bitAmount) external {
         require(enabled, "Migration: migrate enabled");
 
