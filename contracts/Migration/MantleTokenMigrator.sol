@@ -77,7 +77,6 @@ contract MantleTokenMigrator is Ownable {
      *      - conversion must be enabled
      *      - the balance of `this` contract must be larger or equal than the amount of MNT to transfer.
      *
-     *  @param  _bitAmount  The amount of BIT tokens to convert.
      */
     function migrate(uint256 _bitAmount) external {
         require(enabled, "Migration: migrate enabled");
@@ -94,7 +93,10 @@ contract MantleTokenMigrator is Ownable {
         mantle.safeTransfer(msg.sender, mantleAmount);
     }
 
-    // deposit mantle here
+    /**
+     *  Deposit some MNT tokens.
+     *  @todo   Is it necessary? 
+     */
     function deposit(uint256 _amount) external {
         require(address(mantle) != address(0), "Zero address: mantle");
         IERC20(mantle).safeTransferFrom(msg.sender, address(this), _amount);
@@ -102,19 +104,30 @@ contract MantleTokenMigrator is Ownable {
         emit Deposit(msg.sender, _amount);
     }
 
-    /* ========== OWNABLE ========== */
-
-    // enable migrations
+    /**
+     *  Enable conversion for users.
+     *
+     *  Requirements:
+     *      - can only be set by owner.
+     */
     function unpause() external onlyOwner {
         enabled = true;
     }
 
-    // disable migrations
-    function pause() external onlyOwner {
+    /**
+     *  Disable conversion for users.
+     *
+     *  Requirements:
+     *      - can only be set by owner.
+     */    function pause() external onlyOwner {
         enabled = false;
     }
 
     // set mantle address
+    /**
+     *  Set the MNT ERC-20 mantle address. 
+     *  @todo   Is it necessary? Why isn't it immutable? 
+     */
     function setMantle(address _mantle) external onlyOwner {
         require(address(mantle) == address(0), "Already set, only can be set once");
         require(_mantle != address(0), "Zero address: mantle");
@@ -123,6 +136,9 @@ contract MantleTokenMigrator is Ownable {
     }
 
     // function to allow owner to withdraw funds(tokens except bit) sent directly to contract
+    /**
+     *  ??
+     */
     function withdrawToken(address tokenAddress, uint256 amount, address recipient) external onlyOwner {
         require(tokenAddress != address(0), "Token address cannot be 0x0");
         require(tokenAddress != address(bit), "Cannot withdraw: bit");
