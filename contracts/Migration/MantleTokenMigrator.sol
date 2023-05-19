@@ -27,7 +27,6 @@ contract MantleTokenMigrator is Ownable {
     uint256 public constant CONVERSION_NUMERATOR = 314;
 
     /// Events
-    event Deposit(address indexed from, uint256 amount);
     event Migrate(address indexed from, uint256 mantleAmount);
 
     /* ========== MIGRATION ========== */
@@ -96,16 +95,6 @@ contract MantleTokenMigrator is Ownable {
     }
 
     /**
-     *  Deposit some MNT tokens.
-     */
-    function deposit(uint256 _amount) external {
-        require(address(mantle) != address(0), "ERC-20 MNT contract must be set");
-        IERC20(mantle).safeTransferFrom(msg.sender, address(this), _amount);
-
-        emit Deposit(msg.sender, _amount);
-    }
-
-    /**
      *  Enable conversion for users.
      *
      *  Requirements:
@@ -125,7 +114,6 @@ contract MantleTokenMigrator is Ownable {
         enabled = false;
     }
 
-    // set mantle address
     /**
      *  Set the MNT ERC-20 mantle address.
      */
@@ -136,7 +124,12 @@ contract MantleTokenMigrator is Ownable {
         mantle = IERC20(_mantle);
     }
 
-    // function to allow owner to withdraw funds sent directly to contract
+    /**
+     *  Withdraw erc20 tokens.
+     *
+     *  Requirements:
+     *      - can only be set by owner.
+     */
     function withdrawToken(address tokenAddress, uint256 amount, address recipient) external onlyOwner {
         require(tokenAddress != address(0), "Token address cannot be 0x0");
         require(amount > 0, "Withdraw value must be greater than 0");
@@ -150,7 +143,6 @@ contract MantleTokenMigrator is Ownable {
             amount = contractBalance; // set the withdrawal amount equal to balance within the account.
         }
 
-        // transfer the token from address of this contract
         tokenContract.safeTransfer(recipient, amount);
     }
 }

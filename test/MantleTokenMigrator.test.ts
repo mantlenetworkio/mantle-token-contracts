@@ -42,27 +42,11 @@ describe("MantleTokenMigrator", () => {
     //   const [deployer] = await ethers.getSigners();
     //   const mtmInstance = new MantleTokenMigrator__factory(deployer).attach(mtmAddress);
     //   await expect(mtmInstance.setMantle(ethers.constants.AddressZero)).to.be.revertedWith(
-    //     "Zero address: mantle",
+    //     "ERC-20 MNT contract must be set",
     //   );
     // });
   });
   describe("withdrawToken", async () => {
-    it("Should not withdraw bit", async () => {
-      const [deployer, sender, recipient] = await ethers.getSigners();
-      const erc20MockInstance = new ERC20Mock__factory(sender).attach(ERC20MockAddress);
-      const amount = ethers.utils.parseEther("1000")
-      // mint for sender 1000 ERC20MOCK
-      await erc20MockInstance.mint(sender.address, amount)
-      expect(await erc20MockInstance.balanceOf(sender.address)).to.eq(amount);
-      // transfer to mantleTokenMigrator contract
-      await erc20MockInstance.transfer(mtmAddress, amount)
-      expect(await erc20MockInstance.balanceOf(sender.address)).to.eq(0);
-      // MantleTokenMigrator
-      const mtmInstance = new MantleTokenMigrator__factory(deployer).attach(mtmAddress);
-      await expect(mtmInstance.withdrawToken(erc20MockInstance.address, amount, recipient.address)).to.be.revertedWith(
-        "Cannot withdraw: bit",
-      );
-    });
     it("Should withdraw mantle token", async () => {
       const [deployer, sender, recipient] = await ethers.getSigners();
       const amount = ethers.utils.parseEther("1000")
@@ -123,7 +107,7 @@ describe("MantleTokenMigrator", () => {
 
       // swap token
       await expect(senderMtmInstance.migrate(amount)).to.be.revertedWith(
-        "Migration: migrate enabled",
+        "Migration not enabled",
       );
 
       // unpause MantleTokenMigrator
@@ -132,7 +116,7 @@ describe("MantleTokenMigrator", () => {
 
       // swap token
       await expect(senderMtmInstance.migrate(amount)).to.be.revertedWith(
-        "Insufficient: not sufficient mantle",
+        "Insufficient mantle tokens",
       );
     });
   });
