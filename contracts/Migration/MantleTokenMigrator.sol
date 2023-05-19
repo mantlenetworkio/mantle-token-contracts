@@ -8,7 +8,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 /**
  * @title   Contract to convert BIT (BITDAO) tokens to MNT (Mantle) tokens.
  *
- * @notice  Enable BIT token holders to convert their BIT tokens into MNT tokens. 
+ * @notice  Enable BIT token holders to convert their BIT tokens into MNT tokens.
  *
  * @dev     Provide the following functionalities:
  *          1. Deposit MNT (Mantle) tokens into this contract.
@@ -19,11 +19,11 @@ contract MantleTokenMigrator is Ownable {
     using SafeERC20 for IERC20;
 
     /**
-     *  The conversion ratio is 3.14 = 314/100 (~Pi) and is specified by a denominator/numerator. 
+     *  The conversion ratio is 3.14 = 314/100 (~Pi) and is specified by a denominator/numerator.
      */
-    /** Denominator of conversion ratio. */ 
+    /** Denominator of conversion ratio. */
     uint256 public constant CONVERSION_DENOMINATOR = 100;
-    /** Numerator of conversion ratio. */ 
+    /** Numerator of conversion ratio. */
     uint256 public constant CONVERSION_NUMERATOR = 314;
 
     /// Events
@@ -50,15 +50,15 @@ contract MantleTokenMigrator is Ownable {
      *  Set the address of the BIT token ERC-20 contract.
      *
      *  @dev    An arbitrary address can be passed as argument and will be
-     *          cast to en ERC20 contract. 
+     *          cast to en ERC20 contract.
      *
      *  @param  _bit    The address of the ERC-20 BIT token contract.
-     * 
+     *
      *  Requirements:
      *      - `_bit` cannot be the zero address.
      */
     constructor(address _bit) {
-        require(_bit != address(0), "Zero address: bit");
+        require(_bit != address(0), "Initialisation of ERC-20 BIT contract cannot be zerobit");
         bit = IERC20(_bit);
     }
 
@@ -68,7 +68,7 @@ contract MantleTokenMigrator is Ownable {
      *  @dev    The token conversion comprises the following steps:
      *          1.  transfer _bitAmount of BIT (`bit` ERC-20 token contract ) from `msg.sender` to `this`.
      *          2.  transfer the corresponding amount of MNT (`mantle` ERC-20 token contract) from `this` to `msg.sender`.
-     *          As we are using a decimal conversion ratio, a small amount of MNT may be lost due to rounding. 
+     *          As we are using a decimal conversion ratio, a small amount of MNT may be lost due to rounding.
      *          For instance, converting 101 BIT results to MNT should yield 317.14 MNT which with interger division
      *          is rounded down to 317. The amount lost a conversion is negilgible and always less than 1**-18 MNT.
      *
@@ -80,7 +80,7 @@ contract MantleTokenMigrator is Ownable {
      *
      */
     function migrate(uint256 _bitAmount) external {
-        require(enabled, "Migration: migrate enabled");
+        require(enabled, "Migration not enabled");
 
         uint256 mantleAmount = (_bitAmount * CONVERSION_NUMERATOR) / CONVERSION_DENOMINATOR;
 
@@ -89,7 +89,7 @@ contract MantleTokenMigrator is Ownable {
         bitAmountMigrated = bitAmountMigrated + _bitAmount;
         mantleAmountMigrated = mantleAmountMigrated + mantleAmount;
         uint256 mantleAmountBalance = IERC20(mantle).balanceOf(address(this));
-        require(mantleAmount <= mantleAmountBalance, "Insufficient: not sufficient mantle");
+        require(mantleAmount <= mantleAmountBalance, "Insufficient mantle tokens");
 
         mantle.safeTransfer(msg.sender, mantleAmount);
         emit Migrate(msg.sender, mantleAmount);
@@ -97,7 +97,7 @@ contract MantleTokenMigrator is Ownable {
 
     /**
      *  Deposit some MNT tokens.
-     *  @todo   Is it necessary? 
+     *  @todo   Is it necessary?
      */
     function deposit(uint256 _amount) external {
         require(address(mantle) != address(0), "Zero address: mantle");
@@ -121,18 +121,19 @@ contract MantleTokenMigrator is Ownable {
      *
      *  Requirements:
      *      - can only be set by owner.
-     */    function pause() external onlyOwner {
+     */
+    function pause() external onlyOwner {
         enabled = false;
     }
 
     // set mantle address
     /**
-     *  Set the MNT ERC-20 mantle address. 
-     *  @todo   Is it necessary? Why isn't it immutable? 
+     *  Set the MNT ERC-20 mantle address.
+     *  @todo   Is it necessary? Why isn't it immutable?
      */
     function setMantle(address _mantle) external onlyOwner {
         require(address(mantle) == address(0), "Already set, only can be set once");
-        require(_mantle != address(0), "Zero address: mantle");
+        require(_mantle != address(0), "Initialisation of ERC-20 MNT contract cannot be zerobit");
 
         mantle = IERC20(_mantle);
     }
