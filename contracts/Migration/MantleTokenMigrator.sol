@@ -97,10 +97,9 @@ contract MantleTokenMigrator is Ownable {
 
     /**
      *  Deposit some MNT tokens.
-     *  @todo   Is it necessary?
      */
     function deposit(uint256 _amount) external {
-        require(address(mantle) != address(0), "Zero address: mantle");
+        require(address(mantle) != address(0), "ERC-20 MNT contract must be set");
         IERC20(mantle).safeTransferFrom(msg.sender, address(this), _amount);
 
         emit Deposit(msg.sender, _amount);
@@ -129,11 +128,10 @@ contract MantleTokenMigrator is Ownable {
     // set mantle address
     /**
      *  Set the MNT ERC-20 mantle address.
-     *  @todo   Is it necessary? Why isn't it immutable?
      */
     function setMantle(address _mantle) external onlyOwner {
         require(address(mantle) == address(0), "Already set, only can be set once");
-        require(_mantle != address(0), "Initialisation of ERC-20 MNT contract cannot be zerobit");
+        require(_mantle != address(0), "ERC-20 MNT contract cannot be zerobit");
 
         mantle = IERC20(_mantle);
     }
