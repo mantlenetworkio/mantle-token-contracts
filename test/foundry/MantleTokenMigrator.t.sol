@@ -179,7 +179,7 @@ contract MantleTokenMigratorTest is Test {
         assertEq(l1MantleToken.balanceOf(address(1)), 1);
     }
 
-    function testmigrate() public {
+    function testMigrate() public {
        
         uint256 bitAmount = 1000;
         uint256 l1MantleAmount = 10000;
@@ -209,5 +209,33 @@ contract MantleTokenMigratorTest is Test {
         assertEq(mtm.mantleAmountMigrated(), (bitAmount * mtm.CONVERSION_NUMERATOR()) / mtm.CONVERSION_DENOMINATOR());
         assertEq(bit.balanceOf(address(mtm)), bitAmount);
         assertEq(l1MantleToken.balanceOf(address(mtm)), l1MantleAmount - mtm.mantleAmountMigrated());
+    }
+
+    function testMigrateInsufficient() public {
+       
+        uint256 bitAmount = 10000;
+        uint256 l1MantleAmount = 10000;
+
+        // mint bitAmount BIT to address(2)
+        bit.mint(address(2), bitAmount);
+
+        // transfer l1MantleAmount l1MantleToken to MantleTokenMigrator contract
+        mtm.setMantle(address(l1MantleToken));
+        l1MantleToken.approve(address(mtm), l1MantleAmount);
+        mtm.deposit(l1MantleAmount);
+        assertEq(l1MantleToken.balanceOf(address(mtm)), l1MantleAmount);
+
+        // unpause MantleTokenMigrator
+        mtm.unpause();
+
+        vm.prank(address(2));
+        // address(2) approve bitAmount BIT
+        bit.approve(address(mtm), bitAmount);
+        assertEq(bit.allowance(address(2), address(mtm)), bitAmount);
+
+        // swap token
+        vm.expectRevert("Insufficient: not sufficient mantle");
+        vm.prank(address(2));
+        mtm.migrate(bitAmount);
     }
 }
