@@ -114,35 +114,27 @@ contract MantleTokenMigratorTest is Test {
         mtm.withdrawToken(address(l1MantleToken), 1, address(1));
     }
 
-    function testDepositUnSetMantle() public {
-        vm.expectRevert("ERC-20 MNT contract must be set");
-        mtm.deposit(1);
-    }
-
     function testDeposit() public {
-        l1MantleToken.approve(address(mtm), 1);
+        l1MantleToken.transfer(address(mtm), 1);
 
         mtm.setMantle(address(l1MantleToken));
-        mtm.deposit(1);
 
         assertEq(l1MantleToken.balanceOf(address(mtm)), 1);
     }
 
     function testDepositWithOtherERC20() public {
         otherERC20Mock.mint(address(this), 100);
-        otherERC20Mock.approve(address(mtm), 1);
+        otherERC20Mock.transfer(address(mtm), 1);
 
         mtm.setMantle(address(otherERC20Mock));
-        mtm.deposit(1);
 
         assertEq(otherERC20Mock.balanceOf(address(mtm)), 1);
     }
 
     function testDepositAndWithdraw() public {
-        l1MantleToken.approve(address(mtm), 1);
+        l1MantleToken.transfer(address(mtm), 1);
 
         mtm.setMantle(address(l1MantleToken));
-        mtm.deposit(1);
 
         assertEq(l1MantleToken.balanceOf(address(mtm)), 1);
 
@@ -172,8 +164,7 @@ contract MantleTokenMigratorTest is Test {
 
         // transfer l1MantleAmount l1MantleToken to MantleTokenMigrator contract
         mtm.setMantle(address(l1MantleToken));
-        l1MantleToken.approve(address(mtm), l1MantleAmount);
-        mtm.deposit(l1MantleAmount);
+        l1MantleToken.transfer(address(mtm), l1MantleAmount);
         assertEq(l1MantleToken.balanceOf(address(mtm)), l1MantleAmount);
 
         // unpause MantleTokenMigrator
@@ -203,8 +194,7 @@ contract MantleTokenMigratorTest is Test {
 
         // transfer l1MantleAmount l1MantleToken to MantleTokenMigrator contract
         mtm.setMantle(address(l1MantleToken));
-        l1MantleToken.approve(address(mtm), l1MantleAmount);
-        mtm.deposit(l1MantleAmount);
+        l1MantleToken.transfer(address(mtm), l1MantleAmount);
         assertEq(l1MantleToken.balanceOf(address(mtm)), l1MantleAmount);
 
         // unpause MantleTokenMigrator
