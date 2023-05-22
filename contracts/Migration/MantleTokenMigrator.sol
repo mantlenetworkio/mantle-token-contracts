@@ -25,6 +25,7 @@ contract MantleTokenMigrator {
 
     error MantleTokenMigrator_OnlyOwner(address caller);
     error MantleTokenMigrator_OnlyWhenNotHalted();
+    error MantleTokenMigrator_ImproperlyInitialized();
     error MantleTokenMigrator_InsufficientContractBalance(address token, uint256 contractBalance, uint256 amountToTransfer);
     error MantleTokenMigrator_TransferFailed(address token, uint256 amount);
     error MantleTokenMigrator_SweepNotAllowed(address token);
@@ -60,6 +61,8 @@ contract MantleTokenMigrator {
     }
 
     constructor(address _bitTokenAddress, address _mntTokenAddress, address _treasury, uint256 _tokenSwapRatio, uint256 _tokenSwapScalingFactor) {
+        if (_bitTokenAddress == address(0) || _mntTokenAddress == address(0) || _treasury == address(0) || _tokenSwapRatio== 0 || _tokenSwapScalingFactor == 0) revert MantleTokenMigrator_ImproperlyInitialized();
+
         owner = msg.sender;
         halted = true;
         

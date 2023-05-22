@@ -55,6 +55,32 @@ contract MantleTokenMigratorTest is Test {
         vm.stopPrank();
     }
 
+    function test_mantleTokenMigratorCannotBeInitializedWithZeroValues() public {
+        // iterate through each possible case of zero values
+
+        vm.startPrank(deployer);
+
+        err = abi.encodeWithSignature("MantleTokenMigrator_ImproperlyInitialized()");
+
+        vm.expectRevert(err);
+        mantleTokenMigrator = new MantleTokenMigrator(address(0), address(tokenTwo), treasury, tokenSwapRatio, tokenSwapScalingFactor);
+
+        vm.expectRevert(err);
+        mantleTokenMigrator = new MantleTokenMigrator(address(tokenOne), address(0), treasury, tokenSwapRatio, tokenSwapScalingFactor);
+
+        vm.expectRevert(err);
+        mantleTokenMigrator = new MantleTokenMigrator(address(tokenOne), address(tokenTwo), address(0), tokenSwapRatio, tokenSwapScalingFactor);
+
+        vm.expectRevert(err);
+        mantleTokenMigrator = new MantleTokenMigrator(address(tokenOne), address(tokenTwo), treasury, 0, tokenSwapScalingFactor);
+
+        vm.expectRevert(err);
+        mantleTokenMigrator = new MantleTokenMigrator(address(tokenOne), address(tokenTwo), treasury, tokenSwapRatio, 0);
+
+        vm.stopPrank();
+
+    }
+    
     function test_mantleTokenMigratorCorrectlyInitialized() public {
         // make sure the contract is initialized with the correct values
         assertEq(mantleTokenMigrator.owner(), deployer);
