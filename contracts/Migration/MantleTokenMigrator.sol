@@ -74,6 +74,20 @@ contract MantleTokenMigrator {
         TOKEN_SWAP_SCALING_FACTOR = _tokenSwapScalingFactor;
     }
 
+
+    /* ========== FALLBACKS ========== */
+    fallback() external payable {
+        // calls sending ether to the contract without calldata will use the recieve() hook
+        if (msg.data.length != 0) revert MantleTokenMigrator_InvalidMessageData(msg.data);
+    }
+
+    receive() external payable {
+        // we do not accept ETH in this contract, so revert
+        // calls sending ether to this contract with valid calldata will revert because we have no payable functions
+        // @note you can force ETH into this contract with a selfdestruct, but it has no impact on the contract state
+        revert MantleTokenMigrator_EthNotAccepted();
+    }
+
     /* ========== TOKEN SWAPPING ========== */
 
     function swapAllBIT() onlyWhenNotHalted external {
@@ -154,20 +168,5 @@ contract MantleTokenMigrator {
 
         emit TokensSwept(_tokenAddress, _recipient, _amount);
     }
-
-    /* ========== FALLBACKS ========== */
-    fallback() external payable {
-        // calls sending ether to the contract without calldata will use the recieve() hook
-        if (msg.data.length != 0) revert MantleTokenMigrator_InvalidMessageData(msg.data);
-    }
-
-    receive() external payable {
-        // we do not accept ETH in this contract, so revert
-        // calls sending ether to this contract with valid calldata will revert because we have no payable functions
-        // @note you can force ETH into this contract with a selfdestruct, but it has no impact on the contract state
-        revert MantleTokenMigrator_EthNotAccepted();
-    }
-
-
 
 }
