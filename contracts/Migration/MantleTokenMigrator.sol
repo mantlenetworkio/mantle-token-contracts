@@ -43,7 +43,6 @@ contract MantleTokenMigrator {
     error MantleTokenMigrator_TransferFailed(address token, uint256 amount);
     error MantleTokenMigrator_SweepNotAllowed(address token);
     error MantleTokenMigrator_InvalidFundingToken(address token);
-    error MantleTokenMigrator_FundingValueMismatch(address token, uint256 expectedAmount, uint256 actualAmount);
     error MantleTokenMigrator_InvalidMessageData(bytes data);
     error MantleTokenMigrator_EthNotAccepted();
 
