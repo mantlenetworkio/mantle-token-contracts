@@ -5,6 +5,19 @@ import "../interfaces/IERC20.sol";
 
 contract MantleTokenMigrator {
 
+    /* ========== STATE VARIABLES ========== */
+
+    address public immutable BIT_TOKEN_ADDRESS;
+    address public immutable MNT_TOKEN_ADDRESS;
+
+    uint256 public immutable TOKEN_SWAP_RATIO;
+    uint256 public immutable TOKEN_SWAP_SCALING_FACTOR;
+    
+    address public treasury;
+    address public owner;
+
+    bool public halted;
+
     /* ========== EVENTS ========== */
 
     // TokenSwap Events
@@ -33,20 +46,6 @@ contract MantleTokenMigrator {
     error MantleTokenMigrator_FundingValueMismatch(address token, uint256 expectedAmount, uint256 actualAmount);
     error MantleTokenMigrator_InvalidMessageData(bytes data);
     error MantleTokenMigrator_EthNotAccepted();
-
-
-    /* ========== STATE VARIABLES ========== */
-
-    address public immutable BIT_TOKEN_ADDRESS;
-    address public immutable MNT_TOKEN_ADDRESS;
-
-    uint256 public immutable TOKEN_SWAP_RATIO;
-    uint256 public immutable TOKEN_SWAP_SCALING_FACTOR;
-    
-    address public treasury;
-    address public owner;
-
-    bool public halted;
 
     /* ========== MODIFIERS ========== */
 
