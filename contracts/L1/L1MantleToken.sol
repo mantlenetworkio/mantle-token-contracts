@@ -22,6 +22,8 @@ contract L1MantleToken is
     uint256 public constant MIN_MINT_INTERVAL = 365 days;
     /// @notice The amount that can be can be minted - denominator
     uint256 public constant MINT_CAP_DENOMINATOR = 10_000;
+    /// @notice The amount that can be can be minted - max numerator
+    uint256 public constant MINT_CAP_MAX_NUMERATOR = 200;
     /// @notice The amount that can be can be minted - numerator
     uint256 public mintCapNumerator;
     /// @notice The time at which the next mint is allowed - timestamp
@@ -66,7 +68,7 @@ contract L1MantleToken is
     }
 
     function setMintCapNumerator(uint256 _mintCapNumerator) public onlyOwner {
-        require(_mintCapNumerator <= 200, "MANTLE: MAX_INFLATION IS 2%");
+        require(_mintCapNumerator <= MINT_CAP_MAX_NUMERATOR, "MANTLE: MAX_INFLATION IS 2%");
         mintCapNumerator = _mintCapNumerator;
 
         emit SetMintCapNumerator(msg.sender, mintCapNumerator);
