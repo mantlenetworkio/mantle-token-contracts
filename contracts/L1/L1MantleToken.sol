@@ -66,6 +66,7 @@ contract L1MantleToken is
     }
 
     function setMintCapNumerator(uint256 _mintCapNumerator) public onlyOwner {
+        require(_mintCapNumerator <= 200, "MANTLE: MAX_INFLATION IS 2%");
         mintCapNumerator = _mintCapNumerator;
 
         emit SetMintCapNumerator(msg.sender, mintCapNumerator);
