@@ -2,8 +2,8 @@ import { ethers, upgrades } from "hardhat";
 import chai from "chai";
 import { solidity } from "ethereum-waffle";
 import { L1MantleToken__factory } from "../typechain";
-import { time } from "@nomicfoundation/hardhat-network-helpers";
-
+import { time, mine } from "@nomicfoundation/hardhat-network-helpers";
+// import { expectEvent } from "@openzeppelin/test-helpers";
 
 chai.use(solidity);
 const { expect } = chai;
@@ -100,4 +100,48 @@ describe("L1MantleToken", () => {
       );
     });
   });
+  describe("Vote", async () => {
+    const sendAmount = ethers.utils.parseEther("100");
+    beforeEach(async () => {
+      const [deployer, holder, recipient, holderDelegatee, other1, other2] = await ethers.getSigners();
+      const l1MantleTokenInstance = new L1MantleToken__factory(deployer).attach(l1MantleTokenAddress);
+      // const sendAmount = ethers.utils.parseEther("100");
+      await l1MantleTokenInstance.transfer(holder.address, sendAmount);
+    });
+    describe('call', async () => {
+      describe('set delegation', async () => {
+        it('delegation with balance', async function () {
+          const [deployer, holder] = await ethers.getSigners();
+          const holderIns = new L1MantleToken__factory(holder).attach(l1MantleTokenAddress);
+          expect(await holderIns.delegates(holder.address)).to.be.equal(ethers.constants.AddressZero);
+        
+          const res = await holderIns.delegate(holder.address)
+          expect(res)
+				    .to.emit(holderIns, "DelegateChanged").withArgs(holder.address, ethers.constants.AddressZero, holder.address)
+				    .to.emit(holderIns, "DelegateVotesChanged").withArgs(holder.address, 0, sendAmount)
+
+          expect(await holderIns.delegates(holder.address)).to.be.equal(holder.address);
+          expect(await holderIns.getVotes(holder.address)).to.be.equal(sendAmount);
+          const timepoint = res.blockNumber || 0;
+          expect(await holderIns.getPastVotes(holder.address, timepoint - 1)).to.be.equal(0);
+          await mine();
+          expect(await holderIns.getPastVotes(holder.address, timepoint)).to.be.equal(sendAmount);
+        });
+    
+        it('delegation without balance', async function () {
+          const [deployer, holder, recipient, other1] = await ethers.getSigners();
+          const other1Ins = new L1MantleToken__factory(other1).attach(l1MantleTokenAddress);
+          expect(await other1Ins.delegates(other1.address)).to.be.equal(ethers.constants.AddressZero);
+    
+          const res = await other1Ins.delegate(other1.address);
+
+          expect(res)
+				    .to.emit(other1Ins, "DelegateChanged").withArgs(other1.address, ethers.constants.AddressZero, other1.address)
+            .to.not.emit(other1Ins, "DelegateVotesChanged");
+    
+          expect(await other1Ins.delegates(other1.address)).to.be.equal(other1.address);
+        });
+      })
+    })
+  })
 });
