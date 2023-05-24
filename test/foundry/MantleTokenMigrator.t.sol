@@ -15,8 +15,8 @@ contract MantleTokenMigratorTest is Test {
     address public userTwo;
     address public userThree;
 
-    uint256 tokenSwapRatio;
-    uint256 tokenSwapScalingFactor;
+    uint256 tokenConversionNumerator;
+    uint256 tokenConversionDenominator;
 
     UserFactory public userFactory;
     MantleTokenMigrator public mantleTokenMigrator;
@@ -35,8 +35,8 @@ contract MantleTokenMigratorTest is Test {
         userTwo = users[3];
         userThree = users[4];
 
-        tokenSwapRatio = 42069;
-        tokenSwapScalingFactor = 10000;
+        tokenConversionNumerator = 42069;
+        tokenConversionDenominator = 10000;
 
         tokenOne = new MockERC20("Token One", "TKN1", 18);
         tokenTwo = new MockERC20("Token Two", "TKN2", 18);
@@ -50,7 +50,7 @@ contract MantleTokenMigratorTest is Test {
         tokenTwo.mint(treasury, 42069*2 ether);
 
         vm.startPrank(deployer);
-        mantleTokenMigrator = new MantleTokenMigrator(address(tokenOne), address(tokenTwo), treasury, tokenSwapRatio, tokenSwapScalingFactor);
+        mantleTokenMigrator = new MantleTokenMigrator(address(tokenOne), address(tokenTwo), treasury, tokenConversionNumerator, tokenConversionDenominator);
         mantleTokenMigrator.unhaltContract();
         vm.stopPrank();
     }
@@ -63,19 +63,19 @@ contract MantleTokenMigratorTest is Test {
         err = abi.encodeWithSignature("MantleTokenMigrator_ImproperlyInitialized()");
 
         vm.expectRevert(err);
-        mantleTokenMigrator = new MantleTokenMigrator(address(0), address(tokenTwo), treasury, tokenSwapRatio, tokenSwapScalingFactor);
+        mantleTokenMigrator = new MantleTokenMigrator(address(0), address(tokenTwo), treasury, tokenConversionNumerator, tokenConversionDenominator);
 
         vm.expectRevert(err);
-        mantleTokenMigrator = new MantleTokenMigrator(address(tokenOne), address(0), treasury, tokenSwapRatio, tokenSwapScalingFactor);
+        mantleTokenMigrator = new MantleTokenMigrator(address(tokenOne), address(0), treasury, tokenConversionNumerator, tokenConversionDenominator);
 
         vm.expectRevert(err);
-        mantleTokenMigrator = new MantleTokenMigrator(address(tokenOne), address(tokenTwo), address(0), tokenSwapRatio, tokenSwapScalingFactor);
+        mantleTokenMigrator = new MantleTokenMigrator(address(tokenOne), address(tokenTwo), address(0), tokenConversionNumerator, tokenConversionDenominator);
 
         vm.expectRevert(err);
-        mantleTokenMigrator = new MantleTokenMigrator(address(tokenOne), address(tokenTwo), treasury, 0, tokenSwapScalingFactor);
+        mantleTokenMigrator = new MantleTokenMigrator(address(tokenOne), address(tokenTwo), treasury, 0, tokenConversionDenominator);
 
         vm.expectRevert(err);
-        mantleTokenMigrator = new MantleTokenMigrator(address(tokenOne), address(tokenTwo), treasury, tokenSwapRatio, 0);
+        mantleTokenMigrator = new MantleTokenMigrator(address(tokenOne), address(tokenTwo), treasury, tokenConversionNumerator, 0);
 
         vm.stopPrank();
 
@@ -90,8 +90,8 @@ contract MantleTokenMigratorTest is Test {
 
         assertEq(mantleTokenMigrator.treasury(), treasury);
 
-        assertEq(mantleTokenMigrator.TOKEN_SWAP_RATIO(), tokenSwapRatio);
-        assertEq(mantleTokenMigrator.TOKEN_SWAP_SCALING_FACTOR(), tokenSwapScalingFactor);
+        assertEq(mantleTokenMigrator.TOKEN_CONVERSION_NUMERATOR(), tokenConversionNumerator);
+        assertEq(mantleTokenMigrator.TOKEN_CONVERSION_DENOMINATOR(), tokenConversionDenominator);
 
 
         // make sure modifiers are correctly reached
@@ -106,25 +106,25 @@ contract MantleTokenMigratorTest is Test {
         vm.startPrank(userOne);
         err = abi.encodeWithSignature("MantleTokenMigrator_OnlyWhenNotHalted()");
         vm.expectRevert(err);
-        mantleTokenMigrator.swapAllBIT();
+        mantleTokenMigrator.migrateAllBIT();
         vm.stopPrank();
         
     }
 
 
-    function test_swapAllBIT() public {
+    function test_migrateAllBIT() public {
         vm.startPrank(userOne);
 
         // should fail if the users approve amount is not enough
         vm.expectRevert(stdError.arithmeticError);
-        mantleTokenMigrator.swapAllBIT();
+        mantleTokenMigrator.migrateAllBIT();
         
         // approve mantleTokenMigrator
         tokenOne.approve(address(mantleTokenMigrator), 10000 ether);
 
         // should fail when the contract is not funded
         vm.expectRevert(stdError.arithmeticError);
-        mantleTokenMigrator.swapAllBIT();
+        mantleTokenMigrator.migrateAllBIT();
         vm.stopPrank();
 
         // fund contract with tokenTwo
@@ -135,7 +135,7 @@ contract MantleTokenMigratorTest is Test {
         
         // swap all BIT
         vm.startPrank(userOne);
-        mantleTokenMigrator.swapAllBIT();
+        mantleTokenMigrator.migrateAllBIT();
         vm.stopPrank();
 
         // assert that the contract/user have the correct amount of tokenTwo after the user has swapped all tokenOne
@@ -147,25 +147,25 @@ contract MantleTokenMigratorTest is Test {
         assertEq(tokenOne.balanceOf(userOne), 0 ether);
     }
 
-    function test_swapBIT() public {
+    function test_migrateBIT() public {
         vm.startPrank(userTwo);
 
         // should fail if the users approve amount is not enough
         uint256 amountTooLargeToSwap = 100000 ether;
         vm.expectRevert(stdError.arithmeticError);
-        mantleTokenMigrator.swapBIT(amountTooLargeToSwap);
+        mantleTokenMigrator.migrateBIT(amountTooLargeToSwap);
         
         // approve mantleTokenMigrator
         tokenOne.approve(address(mantleTokenMigrator), amountTooLargeToSwap);
 
         // should fail if the user doesn't have the correct tokenOne balance
         vm.expectRevert(stdError.arithmeticError);
-        mantleTokenMigrator.swapBIT(amountTooLargeToSwap);
+        mantleTokenMigrator.migrateBIT(amountTooLargeToSwap);
 
         // should fail when the contract is not funded
         uint256 amountToSwap = 5000 ether;
         vm.expectRevert(stdError.arithmeticError);
-        mantleTokenMigrator.swapBIT(amountToSwap);
+        mantleTokenMigrator.migrateBIT(amountToSwap);
         vm.stopPrank();
 
         // fund contract with tokenTwo
@@ -176,7 +176,7 @@ contract MantleTokenMigratorTest is Test {
         
         // swap half of the users TokenOne
         vm.startPrank(userTwo);
-        mantleTokenMigrator.swapBIT(amountToSwap);
+        mantleTokenMigrator.migrateBIT(amountToSwap);
         vm.stopPrank();
 
         // assert that the contract/user have the correct amount of tokenTwo after the user has swapped all tokenOne
@@ -189,7 +189,7 @@ contract MantleTokenMigratorTest is Test {
 
         // swap other half of the users TokenOne
         vm.startPrank(userTwo);
-        mantleTokenMigrator.swapBIT(amountToSwap);
+        mantleTokenMigrator.migrateBIT(amountToSwap);
         vm.stopPrank();
 
         // assert that the contract/user have the correct amount of tokenTwo after the user has swapped all tokenOne
@@ -262,7 +262,7 @@ contract MantleTokenMigratorTest is Test {
         // perform a swap
         vm.startPrank(userOne);
         tokenOne.approve(address(mantleTokenMigrator), 5000 ether);
-        mantleTokenMigrator.swapBIT(5000 ether);
+        mantleTokenMigrator.migrateBIT(5000 ether);
         vm.stopPrank();
 
         // assert balances are correct
