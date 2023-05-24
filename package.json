@@ -8,7 +8,7 @@
     "deploy": "npx hardhat run scripts/deploy.ts --network",
     "etherscan-verify": "npx hardhat verify --network",
     "verify-migration": "npx hardhat verify --contract contracts/Migration/MantleTokenMigrator.sol:MantleTokenMigrator --network goerli 0x004955B8074eB3dD979f12a074663E548ce24Bcc 0x6d3d7b3779655405eE64662E33b79A4699845C3e",
-    "verify-l1": "npx hardhat verify --contract contracts/L1/L1MantleToken.sol:L1MantleToken --network goerli 0xeb64397a9f55064C2214b89Fd70B2Cc3231B0A2a",
+    "verify-l1": "npx hardhat verify --contract contracts/L1/L1MantleToken.sol:L1MantleToken --network goerli 0xfEc6047a4fA9C0f08a2b5cBa48f21fac1e11E06B",
     "test": "npx hardhat test",
     "coverage": "npx hardhat coverage --solcoverjs .solcover.ts"
   },

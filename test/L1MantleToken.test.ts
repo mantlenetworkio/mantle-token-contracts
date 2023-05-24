@@ -19,6 +19,32 @@ describe("L1MantleToken", () => {
     await l1MantleToken.deployed();
     l1MantleTokenAddress = l1MantleToken.address;
   });
+  describe("Upgrades", async () => {
+    const sendAmount = ethers.utils.parseEther("100");
+    const receiverAmount = ethers.utils.parseEther("10");
+    beforeEach(async () => {
+      // transfer to owner
+      const [deployer, owner] = await ethers.getSigners();
+      const deployerIns = new L1MantleToken__factory(deployer).attach(l1MantleTokenAddress);
+      await deployerIns.transfer(owner.address, sendAmount);
+    });
+    it("Should transfer success when use transferProxyAdminOwnership", async () => {
+      const [deployer, owner, receiver] = await ethers.getSigners();
+      await upgrades.admin.transferProxyAdminOwnership(owner.address, deployer);
+      const ownerIns = new L1MantleToken__factory(owner).attach(l1MantleTokenAddress);
+
+      await ownerIns.transfer(receiver.address, receiverAmount);
+      expect(await ownerIns.balanceOf(receiver.address)).to.eq(receiverAmount);
+    });
+    it("Should transfer failed when use changeProxyAdmin", async () => {
+      const [deployer, owner, receiver] = await ethers.getSigners();
+      await upgrades.admin.changeProxyAdmin(l1MantleTokenAddress, owner.address, deployer);
+      const ownerIns = new L1MantleToken__factory(owner).attach(l1MantleTokenAddress);
+      expect(ownerIns.transfer(receiver.address, receiverAmount)).to.be.revertedWith(
+        "TransparentUpgradeableProxy: admin cannot fallback to proxy target",
+      );
+    });
+  });
   describe("Info", async () => {
     it("Should get some token infos", async () => {
       const [deployer] = await ethers.getSigners();
