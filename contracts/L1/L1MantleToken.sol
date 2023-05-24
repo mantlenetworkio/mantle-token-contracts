@@ -49,7 +49,7 @@ contract L1MantleToken is
         address indexed from, uint256 indexed previousMintCapNumerator, uint256 indexed newMintCapNumerator
     );
 
-    /* ========== Errors ========== */
+    /* ========== ERRORS ========== */
 
     /// @notice Thrown when at least one of the inputs passed into the constructor is a zero value
     error MantleToken_ImproperlyInitialized();
