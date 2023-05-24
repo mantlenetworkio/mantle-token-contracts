@@ -10,7 +10,7 @@ import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
 /// @title L1MantleToken
 /// @author 0xMantle
-/// @notice ERC20 token with minting and burning functionality
+/// @notice ERC20 token with minting, burning, and governance functionality
 contract L1MantleToken is
     Initializable,
     ERC20Upgradeable,
