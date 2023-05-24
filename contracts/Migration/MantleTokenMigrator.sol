@@ -194,6 +194,13 @@ contract MantleTokenMigrator {
         _migrateTokens(_amount);
     }
 
+    /// @notice Calculates the amount of MNT tokens to be recieved for a given amount of BIT tokens
+    /// @param _amount The amount of BIT tokens to swap
+    /// @return The amount of MNT tokens to be recieved
+    function tokenMigrationAmountToReceive(uint256 _amount) external view returns (uint256) {
+        return _tokenSwapCalculation(_amount);
+    }
+
     /// @notice Internal function that swaps a specified amount of the caller's BIT tokens for MNT tokens
     /// @dev emits a {TokensMigrated} event
     /// @dev Requirements:
@@ -219,13 +226,6 @@ contract MantleTokenMigrator {
     /// @return The amount of MNT tokens to be recieved
     function _tokenSwapCalculation(uint256 _amount) internal view returns (uint256) {
         return (_amount * TOKEN_CONVERSION_NUMERATOR) / TOKEN_CONVERSION_DENOMINATOR;
-    }
-
-    /// @notice Calculates the amount of MNT tokens to be recieved for a given amount of BIT tokens
-    /// @param _amount The amount of BIT tokens to swap
-    /// @return The amount of MNT tokens to be recieved
-    function tokenMigrationAmountToReceive(uint256 _amount) external view returns (uint256) {
-        return _tokenSwapCalculation(_amount);
     }
 
     /* ========== ADMIN UTILS ========== */
