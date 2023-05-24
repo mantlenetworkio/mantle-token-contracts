@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.13;
 
-import "../interfaces/IERC20.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 
 /// @title A simulator for trees
 /// @author 0xMantle
 /// @notice Token migration contract for the BIT to MNT token migration
 contract MantleTokenMigrator {
+    using SafeTransferLib for ERC20;
 
     /* ========== STATE VARIABLES ========== */
 
@@ -90,17 +92,6 @@ contract MantleTokenMigrator {
     /// @notice Thrown when at least one of the inputs passed into the constructor is a zero value
     error MantleTokenMigrator_ImproperlyInitialized();
 
-    /// @notice Thrown when the contract {token} balance is insufficient to transfer the amount of tokens requested
-    /// @param token The address of the token contract
-    /// @param contractBalance The balance of the token in this contract
-    /// @param amountToTransfer The amount of tokens requested to be transferred
-    error MantleTokenMigrator_InsufficientContractBalance(address token, uint256 contractBalance, uint256 amountToTransfer);
-
-    /// @notice Thrown when a transfer of {token} from an external party fails
-    /// @param token The address of the token contract
-    /// @param amount The amount of tokens requested to be transferred
-    error MantleTokenMigrator_TransferFailed(address token, uint256 amount);
-
     /// @notice Thrown when the {_tokenAddress} passed into the {sweepTokens} function is the BIT or MNT token address
     /// @param token The address of the token contract
     error MantleTokenMigrator_SweepNotAllowed(address token);
@@ -183,7 +174,7 @@ contract MantleTokenMigrator {
     ///     - The caller must have approved this contract to spend their BIT tokens
     ///     - The caller must have a non-zero balance of BIT tokens
     function migrateAllBIT() onlyWhenNotHalted external {
-        uint256 amount = IERC20(BIT_TOKEN_ADDRESS).balanceOf(msg.sender);
+        uint256 amount = ERC20(BIT_TOKEN_ADDRESS).balanceOf(msg.sender);
         _migrateTokens(amount);
     }
 
@@ -209,12 +200,10 @@ contract MantleTokenMigrator {
         uint256 amountToSwap = _tokenSwapCalculation(_amount);
 
         // transfer user's BIT tokens to this contract
-        bool success = IERC20(BIT_TOKEN_ADDRESS).transferFrom(msg.sender, address(this), _amount);
-        if (success == false) revert MantleTokenMigrator_TransferFailed(BIT_TOKEN_ADDRESS, _amount);
+        ERC20(BIT_TOKEN_ADDRESS).safeTransferFrom(msg.sender, address(this), _amount);
 
         // transfer MNT tokens to user, if there are insufficient tokens, in the contract this will revert
-        success = IERC20(MNT_TOKEN_ADDRESS).transfer(msg.sender, amountToSwap);
-        if (success == false) revert MantleTokenMigrator_InsufficientContractBalance(MNT_TOKEN_ADDRESS, IERC20(MNT_TOKEN_ADDRESS).balanceOf(address(this)), amountToSwap);
+        ERC20(MNT_TOKEN_ADDRESS).safeTransfer(msg.sender, amountToSwap);
 
         emit TokensMigrated(msg.sender, _amount, amountToSwap);
     }
@@ -286,8 +275,7 @@ contract MantleTokenMigrator {
         if (_tokenAddress != BIT_TOKEN_ADDRESS && _tokenAddress != MNT_TOKEN_ADDRESS) revert MantleTokenMigrator_InvalidFundingToken(_tokenAddress);
 
         // we can only defund BIT or MNT into the predefined treasury address
-        bool success = IERC20(_tokenAddress).transfer(treasury, _amount);
-        if (success == false) revert MantleTokenMigrator_TransferFailed(_tokenAddress, _amount);
+        ERC20(_tokenAddress).safeTransfer(treasury, _amount);
 
         emit ContractDefunded(treasury, _tokenAddress, _amount);
     }
@@ -301,11 +289,10 @@ contract MantleTokenMigrator {
     /// @param _tokenAddress The address of the token to sweep
     /// @param _recipient The address to sweep the tokens to
     /// @param _amount The amount of tokens to sweep
-    function sweepTokens (address _tokenAddress, address _recipient, uint256 _amount) public onlyOwner {
+    function sweepTokens(address _tokenAddress, address _recipient, uint256 _amount) public onlyOwner {
         // we can only sweep tokens that are not BIT or MNT to an arbitrary addres
         if ((_tokenAddress == address(BIT_TOKEN_ADDRESS)) || (_tokenAddress == address(MNT_TOKEN_ADDRESS))) revert MantleTokenMigrator_SweepNotAllowed(_tokenAddress);
-        bool success = IERC20(_tokenAddress).transfer(_recipient, _amount);
-        if (success == false) revert MantleTokenMigrator_TransferFailed(_tokenAddress, _amount);
+        ERC20(_tokenAddress).safeTransfer(_recipient, _amount);
 
         emit TokensSwept(_tokenAddress, _recipient, _amount);
     }

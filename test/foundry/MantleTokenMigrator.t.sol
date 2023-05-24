@@ -116,14 +116,16 @@ contract MantleTokenMigratorTest is Test {
         vm.startPrank(userOne);
 
         // should fail if the users approve amount is not enough
-        vm.expectRevert(stdError.arithmeticError);
+        err = bytes("TRANSFER_FROM_FAILED");
+        vm.expectRevert(err);
         mantleTokenMigrator.migrateAllBIT();
         
         // approve mantleTokenMigrator
         tokenOne.approve(address(mantleTokenMigrator), 10000 ether);
 
         // should fail when the contract is not funded
-        vm.expectRevert(stdError.arithmeticError);
+        err = bytes("TRANSFER_FAILED");
+        vm.expectRevert(err);
         mantleTokenMigrator.migrateAllBIT();
         vm.stopPrank();
 
@@ -152,19 +154,23 @@ contract MantleTokenMigratorTest is Test {
 
         // should fail if the users approve amount is not enough
         uint256 amountTooLargeToSwap = 100000 ether;
-        vm.expectRevert(stdError.arithmeticError);
+
+        err = bytes("TRANSFER_FROM_FAILED");
+        vm.expectRevert(err);
         mantleTokenMigrator.migrateBIT(amountTooLargeToSwap);
         
         // approve mantleTokenMigrator
         tokenOne.approve(address(mantleTokenMigrator), amountTooLargeToSwap);
 
         // should fail if the user doesn't have the correct tokenOne balance
-        vm.expectRevert(stdError.arithmeticError);
+        err = bytes("TRANSFER_FROM_FAILED");
+        vm.expectRevert(err);
         mantleTokenMigrator.migrateBIT(amountTooLargeToSwap);
 
         // should fail when the contract is not funded
         uint256 amountToSwap = 5000 ether;
-        vm.expectRevert(stdError.arithmeticError);
+        err = bytes("TRANSFER_FAILED");
+        vm.expectRevert(err);
         mantleTokenMigrator.migrateBIT(amountToSwap);
         vm.stopPrank();
 
@@ -238,7 +244,7 @@ contract MantleTokenMigratorTest is Test {
 
     }
 
-    function test_defundContractERC20() public {
+    function test_defundContract() public {
         // assert that a non owner address cannot fund the contract
         err = abi.encodeWithSignature("MantleTokenMigrator_OnlyOwner(address)", address(this));
         vm.expectRevert(err);
@@ -251,7 +257,8 @@ contract MantleTokenMigratorTest is Test {
         mantleTokenMigrator.defundContract(address(tokenToSweep), 1000 ether);
         
         // check that we error out if the contract is not sufficiently funded
-        vm.expectRevert(stdError.arithmeticError);
+        err = bytes("TRANSFER_FAILED");
+        vm.expectRevert(err);
         mantleTokenMigrator.defundContract(address(tokenOne), 1000 ether);
 
         vm.stopPrank();
