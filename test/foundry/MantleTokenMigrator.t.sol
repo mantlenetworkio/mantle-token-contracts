@@ -1,213 +1,376 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "../../contracts/L1/L1MantleToken.sol";
-import "../../contracts/Mock/ERC20Mock.sol";
-import "../../contracts/Migration/MantleTokenMigrator.sol";
-
-import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-
 import "forge-std/Test.sol";
-import "./mocks/EmptyContract.sol";
+import "forge-std/console.sol";
+import "../../contracts/Migration/MantleTokenMigrator.sol";
+import "../../contracts/Mock/MockERC20.sol";
+import "./utils/UserFactory.sol";
 
 contract MantleTokenMigratorTest is Test {
-    ProxyAdmin public proxyAdmin;
-    L1MantleToken public l1MantleToken;
-    ERC20Mock public bit;
-    ERC20Mock public otherERC20Mock;
-    MantleTokenMigrator public mtm;
+    address public deployer;
+    address public treasury;
 
-    uint256 _initialSupply = 10e10;
-    address initialOwner = address(this);
-    address mintTo = address(0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266);
+    address public userOne;
+    address public userTwo;
+    address public userThree;
+
+    uint256 tokenConversionNumerator;
+    uint256 tokenConversionDenominator;
+
+    UserFactory public userFactory;
+    MantleTokenMigrator public mantleTokenMigrator;
+    MockERC20 public tokenOne;
+    MockERC20 public tokenTwo;
+    MockERC20 public tokenToSweep;
+
+    bytes public err;
 
     function setUp() public {
-        proxyAdmin = new ProxyAdmin();
-        EmptyContract emptyContract = new EmptyContract();
+        userFactory = new UserFactory();
+        address[] memory users = userFactory.create(5);
+        deployer = users[0];
+        treasury = users[1];
+        userOne = users[2];
+        userTwo = users[3];
+        userThree = users[4];
 
-        l1MantleToken = L1MantleToken(
-            address(new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), ""))
-        );
+        tokenConversionNumerator = 42069;
+        tokenConversionDenominator = 10000;
 
-        L1MantleToken l1MantleTokenImplementation = new L1MantleToken();
+        tokenOne = new MockERC20("Token One", "TKN1", 18);
+        tokenTwo = new MockERC20("Token Two", "TKN2", 18);
+        tokenToSweep = new MockERC20("Token To Sweep", "TKN3", 18);
 
-        proxyAdmin.upgradeAndCall(
-            ITransparentUpgradeableProxy(payable(address(l1MantleToken))),
-            address(l1MantleTokenImplementation),
-            abi.encodeWithSelector(L1MantleToken.initialize.selector, _initialSupply, initialOwner)
-        );
+        tokenOne.mint(userOne, 10000 ether);
+        tokenOne.mint(userTwo, 10000 ether);
 
-        bit = new ERC20Mock();
-        otherERC20Mock = new ERC20Mock();
+        tokenToSweep.mint(userThree, 10000 ether);
 
-        mtm = new MantleTokenMigrator(address(bit));
+        tokenTwo.mint(treasury, 42069 * 2 ether);
+
+        vm.startPrank(deployer);
+        mantleTokenMigrator =
+        new MantleTokenMigrator(address(tokenOne), address(tokenTwo), treasury, tokenConversionNumerator, tokenConversionDenominator);
+        mantleTokenMigrator.unhaltContract();
+        vm.stopPrank();
     }
 
-    function testInfo() public {
-        assertEq(mtm.CONVERSION_DENOMINATOR(), 100);
-        assertEq(mtm.CONVERSION_NUMERATOR(), 314);
-        assertEq(mtm.bitAmountMigrated(), 0);
-        assertEq(mtm.mantleAmountMigrated(), 0);
-        assertEq(mtm.enabled(), false);
+    function test_mantleTokenMigratorCannotBeInitializedWithZeroValues() public {
+        // iterate through each possible case of zero values
+
+        vm.startPrank(deployer);
+
+        err = abi.encodeWithSignature("MantleTokenMigrator_ImproperlyInitialized()");
+
+        vm.expectRevert(err);
+        mantleTokenMigrator =
+        new MantleTokenMigrator(address(0), address(tokenTwo), treasury, tokenConversionNumerator, tokenConversionDenominator);
+
+        vm.expectRevert(err);
+        mantleTokenMigrator =
+        new MantleTokenMigrator(address(tokenOne), address(0), treasury, tokenConversionNumerator, tokenConversionDenominator);
+
+        vm.expectRevert(err);
+        mantleTokenMigrator =
+        new MantleTokenMigrator(address(tokenOne), address(tokenTwo), address(0), tokenConversionNumerator, tokenConversionDenominator);
+
+        vm.expectRevert(err);
+        mantleTokenMigrator =
+            new MantleTokenMigrator(address(tokenOne), address(tokenTwo), treasury, 0, tokenConversionDenominator);
+
+        vm.expectRevert(err);
+        mantleTokenMigrator =
+            new MantleTokenMigrator(address(tokenOne), address(tokenTwo), treasury, tokenConversionNumerator, 0);
+
+        vm.stopPrank();
     }
 
-    function testPauseAndUnpause() public {
-        mtm.pause();
-        assertEq(mtm.enabled(), false);
+    function test_mantleTokenMigratorCorrectlyInitialized() public {
+        // make sure the contract is initialized with the correct values
+        assertEq(mantleTokenMigrator.owner(), deployer);
 
-        mtm.unpause();
-        assertEq(mtm.enabled(), true);
-        mtm.unpause();
-        assertEq(mtm.enabled(), true);
+        assertEq(mantleTokenMigrator.BIT_TOKEN_ADDRESS(), address(tokenOne));
+        assertEq(mantleTokenMigrator.MNT_TOKEN_ADDRESS(), address(tokenTwo));
 
-        mtm.pause();
-        assertEq(mtm.enabled(), false);
-        mtm.pause();
-        assertEq(mtm.enabled(), false);
+        assertEq(mantleTokenMigrator.treasury(), treasury);
+
+        assertEq(mantleTokenMigrator.TOKEN_CONVERSION_NUMERATOR(), tokenConversionNumerator);
+        assertEq(mantleTokenMigrator.TOKEN_CONVERSION_DENOMINATOR(), tokenConversionDenominator);
+
+        // make sure modifiers are correctly reached
+        err = abi.encodeWithSignature("MantleTokenMigrator_OnlyOwner(address)", address(this));
+        vm.expectRevert(err);
+        mantleTokenMigrator.haltContract();
+
+        vm.startPrank(deployer);
+        mantleTokenMigrator.haltContract();
+        vm.stopPrank();
+
+        vm.startPrank(userOne);
+        err = abi.encodeWithSignature("MantleTokenMigrator_OnlyWhenNotHalted()");
+        vm.expectRevert(err);
+        mantleTokenMigrator.migrateAllBIT();
+        vm.stopPrank();
     }
 
-    function testPauseOnlyowner() public {
-        vm.expectRevert("Ownable: caller is not the owner");
-        vm.prank(address(0));
-        mtm.pause();
+    function test_migrateAllBIT() public {
+        vm.startPrank(userOne);
+
+        // should fail if the users approve amount is not enough
+        err = bytes("TRANSFER_FROM_FAILED");
+        vm.expectRevert(err);
+        mantleTokenMigrator.migrateAllBIT();
+
+        // approve mantleTokenMigrator
+        tokenOne.approve(address(mantleTokenMigrator), 10000 ether);
+
+        // should fail when the contract is not funded
+        err = bytes("TRANSFER_FAILED");
+        vm.expectRevert(err);
+        mantleTokenMigrator.migrateAllBIT();
+        vm.stopPrank();
+
+        // fund contract with tokenTwo
+        _fundContractWithTokenTwo();
+
+        // assert that the contract has the correct amount of tokenTwo after being funded
+        assertEq(tokenTwo.balanceOf(address(mantleTokenMigrator)), 42069 ether);
+
+        // swap all BIT
+        vm.startPrank(userOne);
+        mantleTokenMigrator.migrateAllBIT();
+        vm.stopPrank();
+
+        // assert that the contract/user have the correct amount of tokenTwo after the user has swapped all tokenOne
+        assertEq(tokenTwo.balanceOf(address(mantleTokenMigrator)), 0 ether);
+        assertEq(tokenTwo.balanceOf(userOne), 42069 ether);
+
+        // assert that the contract/user have the correct amount of tokenOne after the user has swapped all tokenOne
+        assertEq(tokenOne.balanceOf(address(mantleTokenMigrator)), 10000 ether);
+        assertEq(tokenOne.balanceOf(userOne), 0 ether);
     }
 
-    function testUnPauseOnlyowner() public {
-        vm.expectRevert("Ownable: caller is not the owner");
-        vm.prank(address(0));
-        mtm.unpause();
+    function test_migrateBIT() public {
+        vm.startPrank(userTwo);
+
+        // should fail if the users approve amount is not enough
+        uint256 amountTooLargeToSwap = 100000 ether;
+
+        err = bytes("TRANSFER_FROM_FAILED");
+        vm.expectRevert(err);
+        mantleTokenMigrator.migrateBIT(amountTooLargeToSwap);
+
+        // approve mantleTokenMigrator
+        tokenOne.approve(address(mantleTokenMigrator), amountTooLargeToSwap);
+
+        // should fail if the user doesn't have the correct tokenOne balance
+        err = bytes("TRANSFER_FROM_FAILED");
+        vm.expectRevert(err);
+        mantleTokenMigrator.migrateBIT(amountTooLargeToSwap);
+
+        // should fail when the contract is not funded
+        uint256 amountToSwap = 5000 ether;
+        err = bytes("TRANSFER_FAILED");
+        vm.expectRevert(err);
+        mantleTokenMigrator.migrateBIT(amountToSwap);
+        vm.stopPrank();
+
+        // fund contract with tokenTwo
+        _fundContractWithTokenTwo();
+
+        // assert that the contract has the correct amount of tokenTwo after being funded
+        assertEq(tokenTwo.balanceOf(address(mantleTokenMigrator)), 42069 ether);
+
+        // swap half of the users TokenOne
+        vm.startPrank(userTwo);
+        mantleTokenMigrator.migrateBIT(amountToSwap);
+        vm.stopPrank();
+
+        // assert that the contract/user have the correct amount of tokenTwo after the user has swapped all tokenOne
+        assertEq(tokenTwo.balanceOf(address(mantleTokenMigrator)), (210345 ether) / 10);
+        assertEq(tokenTwo.balanceOf(userTwo), (210345 ether) / 10);
+
+        // assert that the contract/user have the correct amount of tokenOne after the user has swapped half their tokenOne
+        assertEq(tokenOne.balanceOf(address(mantleTokenMigrator)), 5000 ether);
+        assertEq(tokenOne.balanceOf(userTwo), 5000 ether);
+
+        // swap other half of the users TokenOne
+        vm.startPrank(userTwo);
+        mantleTokenMigrator.migrateBIT(amountToSwap);
+        vm.stopPrank();
+
+        // assert that the contract/user have the correct amount of tokenTwo after the user has swapped all tokenOne
+        assertEq(tokenTwo.balanceOf(address(mantleTokenMigrator)), 0);
+        assertEq(tokenTwo.balanceOf(userTwo), 42069 ether);
+
+        // assert that the contract/user have the correct amount of tokenOne after the user has swapped half their tokenOne
+        assertEq(tokenOne.balanceOf(address(mantleTokenMigrator)), 10000 ether);
+        assertEq(tokenOne.balanceOf(userTwo), 0 ether);
     }
 
-    function testSetMantleUnuseZeroAddress() public {
-        vm.expectRevert("ERC-20 MNT contract cannot be zerobit");
-        mtm.setMantle(address(0));
+    function test_sweepTokensERC20() public {
+        // send tokenToSweep to the contract
+        vm.startPrank(userThree);
+        tokenToSweep.transfer(address(mantleTokenMigrator), 1000 ether);
+        vm.stopPrank();
+
+        // assert that the contract has the correct amount of tokenToSweep after being funded
+        assertEq(tokenToSweep.balanceOf(address(mantleTokenMigrator)), 1000 ether);
+        assertEq(tokenToSweep.balanceOf(userThree), 9000 ether);
+
+        // make sure that an address that is not the contract owner can sweep tokens
+        err = abi.encodeWithSignature("MantleTokenMigrator_OnlyOwner(address)", address(this));
+        vm.expectRevert(err);
+        mantleTokenMigrator.sweepTokens(address(tokenToSweep), userThree, 1000 ether);
+
+        // make sure that the contract owner can sweep tokens
+        vm.startPrank(deployer);
+        mantleTokenMigrator.sweepTokens(address(tokenToSweep), userThree, 1000 ether);
+
+        // assert balances are correct post sweep
+        assertEq(tokenToSweep.balanceOf(address(mantleTokenMigrator)), 0 ether);
+        assertEq(tokenToSweep.balanceOf(userThree), 10000 ether);
+
+        // assert that trying to sweep tokenOne fails
+        err = abi.encodeWithSignature("MantleTokenMigrator_SweepNotAllowed(address)", address(tokenOne));
+        vm.expectRevert(err);
+        mantleTokenMigrator.sweepTokens(address(tokenOne), userThree, 1000 ether);
+
+        // assert that trying to sweep tokenTwo fails
+        err = abi.encodeWithSignature("MantleTokenMigrator_SweepNotAllowed(address)", address(tokenTwo));
+        vm.expectRevert(err);
+        mantleTokenMigrator.sweepTokens(address(tokenTwo), userThree, 1000 ether);
+        vm.stopPrank();
     }
 
-    function testSetMantle() public {
-        mtm.setMantle(address(l1MantleToken));
+    function test_defundContract() public {
+        // assert that a non owner address cannot fund the contract
+        err = abi.encodeWithSignature("MantleTokenMigrator_OnlyOwner(address)", address(this));
+        vm.expectRevert(err);
+        mantleTokenMigrator.defundContract(address(tokenTwo), 1000 ether);
+
+        vm.startPrank(deployer);
+        // assert that we are only able to defund the contract of valid tokens
+        err = abi.encodeWithSignature("MantleTokenMigrator_InvalidFundingToken(address)", address(tokenToSweep));
+        vm.expectRevert(err);
+        mantleTokenMigrator.defundContract(address(tokenToSweep), 1000 ether);
+
+        // check that we error out if the contract is not sufficiently funded
+        err = bytes("TRANSFER_FAILED");
+        vm.expectRevert(err);
+        mantleTokenMigrator.defundContract(address(tokenOne), 1000 ether);
+
+        vm.stopPrank();
+
+        // fund the contract
+        _fundContractWithTokenTwo();
+
+        // perform a swap
+        vm.startPrank(userOne);
+        tokenOne.approve(address(mantleTokenMigrator), 5000 ether);
+        mantleTokenMigrator.migrateBIT(5000 ether);
+        vm.stopPrank();
+
+        // assert balances are correct
+        assertEq(tokenOne.balanceOf(address(mantleTokenMigrator)), 5000 ether);
+        assertEq(tokenOne.balanceOf(userOne), 5000 ether);
+        assertEq(tokenTwo.balanceOf(address(mantleTokenMigrator)), (210345 ether) / 10);
+        assertEq(tokenTwo.balanceOf(userOne), (210345 ether) / 10);
+
+        vm.startPrank(deployer);
+
+        // assert that we can defund the contract
+        mantleTokenMigrator.defundContract(address(tokenOne), 1000 ether);
+        mantleTokenMigrator.defundContract(address(tokenTwo), 1000 ether);
+
+        // assert that the balances are correct
+        assertEq(tokenOne.balanceOf(address(mantleTokenMigrator)), 4000 ether);
+        assertEq(tokenOne.balanceOf(treasury), 1000 ether);
+        assertEq(tokenTwo.balanceOf(address(mantleTokenMigrator)), (210345 ether) / 10 - 1000 ether);
+        assertEq(tokenTwo.balanceOf(treasury), 42069 ether + 1000 ether);
     }
 
-    function testSetMantletwice() public {
-        mtm.setMantle(address(l1MantleToken));
-        vm.expectRevert("Already set, only can be set once");
-        mtm.setMantle(address(0));
+    function test_transferOwnership() public {
+        // assert that an address that is not the owner can't transfer ownership
+        err = abi.encodeWithSignature("MantleTokenMigrator_OnlyOwner(address)", address(this));
+        vm.expectRevert(err);
+        mantleTokenMigrator.transferOwnership(userOne);
+
+        vm.startPrank(deployer);
+
+        // assert that the deployer is able to transfer ownership
+        mantleTokenMigrator.transferOwnership(userOne);
+
+        vm.stopPrank();
+
+        // assert that the new owner is set in storage
+        assertEq(mantleTokenMigrator.owner(), userOne);
+
+        // assert that the new owner is able to transfer ownership
+        vm.startPrank(userOne);
+
+        mantleTokenMigrator.transferOwnership(userTwo);
+
+        vm.stopPrank();
+
+        // assert that the new owner is set in storage
+        assertEq(mantleTokenMigrator.owner(), userTwo);
     }
 
-    function testWithdrawTokenUnuseZeroAddress() public {
-        vm.expectRevert("Token address cannot be 0x0");
-        mtm.withdrawToken(address(0), 1, address(1));
+    function test_haltContract() public {
+        // assert contract is not halted
+        assertEq(mantleTokenMigrator.halted(), false);
+
+        // halt the contract
+        vm.startPrank(deployer);
+        mantleTokenMigrator.haltContract();
+        vm.stopPrank();
+
+        // assert contract is halted
+        assertEq(mantleTokenMigrator.halted(), true);
     }
 
-    function testWithdrawTokenUnuseBIT() public {
-        mtm.withdrawToken(address(bit), 1, address(1));
+    function test_setTreasury() public {
+        // assert that the treasury is set to the initialized value
+        assertEq(mantleTokenMigrator.treasury(), treasury);
+
+        // assert that the treasury can't be set by a non-owner address
+        err = abi.encodeWithSignature("MantleTokenMigrator_OnlyOwner(address)", address(this));
+        vm.expectRevert(err);
+        mantleTokenMigrator.setTreasury(userOne);
+
+        // become the deployer
+        vm.startPrank(deployer);
+
+        // assert that the treasury can be set by the owner
+        mantleTokenMigrator.setTreasury(userOne);
+        assertEq(mantleTokenMigrator.treasury(), userOne);
+
+        vm.stopPrank();
     }
 
-    // // Invalid implicit conversion from int_const -1 to uint256 requested
-    // function testWithdrawMorethanZero() public {
-
-    //     vm.expectRevert("Withdraw value must be greater than 0");
-    //     mtm.withdrawToken(address(l1MantleToken), -1, address(1));
-    // }
-
-    function testWithdrawToken() public {
-        mtm.withdrawToken(address(l1MantleToken), 1, address(1));
+    function test_fallback() public {
+        // assert that the fallback function reverts when a function that doesn't exist is called
+        bytes memory messageData = bytes("absolutely invalid message data");
+        err = abi.encodeWithSignature("MantleTokenMigrator_InvalidMessageData(bytes)", messageData);
+        vm.expectRevert(err);
+        (bool success,) = address(mantleTokenMigrator).call{value: 1}(messageData);
+        assertTrue(success, "expectRevert: call did not revert");
     }
 
-    function testDeposit() public {
-        l1MantleToken.transfer(address(mtm), 1);
-
-        mtm.setMantle(address(l1MantleToken));
-
-        assertEq(l1MantleToken.balanceOf(address(mtm)), 1);
+    function test_receive() public {
+        // assert that the receive function reverts when ether is sent to the contract
+        err = abi.encodeWithSignature("MantleTokenMigrator_EthNotAccepted()");
+        vm.expectRevert(err);
+        (bool success,) = address(mantleTokenMigrator).call{value: 1}("");
+        assertTrue(success, "expectRevert: call did not revert");
     }
 
-    function testDepositWithOtherERC20() public {
-        otherERC20Mock.mint(address(this), 100);
-        otherERC20Mock.transfer(address(mtm), 1);
-
-        mtm.setMantle(address(otherERC20Mock));
-
-        assertEq(otherERC20Mock.balanceOf(address(mtm)), 1);
-    }
-
-    function testDepositAndWithdraw() public {
-        l1MantleToken.transfer(address(mtm), 1);
-
-        mtm.setMantle(address(l1MantleToken));
-
-        assertEq(l1MantleToken.balanceOf(address(mtm)), 1);
-
-        mtm.withdrawToken(address(l1MantleToken), 1, address(1));
-        assertEq(l1MantleToken.balanceOf(address(mtm)), 0);
-        assertEq(l1MantleToken.balanceOf(address(1)), 1);
-    }
-
-    function testDepositAndWithdrawAfterTransfer() public {
-        l1MantleToken.transfer(address(mtm), 1);
-
-        // mtm.setMantle(address(l1MantleToken));
-
-        assertEq(l1MantleToken.balanceOf(address(mtm)), 1);
-
-        mtm.withdrawToken(address(l1MantleToken), 1, address(1));
-        assertEq(l1MantleToken.balanceOf(address(mtm)), 0);
-        assertEq(l1MantleToken.balanceOf(address(1)), 1);
-    }
-
-    function testMigrate() public {
-        uint256 bitAmount = 1000;
-        uint256 l1MantleAmount = 10000;
-
-        // mint bitAmount BIT to address(2)
-        bit.mint(address(2), bitAmount);
-
-        // transfer l1MantleAmount l1MantleToken to MantleTokenMigrator contract
-        mtm.setMantle(address(l1MantleToken));
-        l1MantleToken.transfer(address(mtm), l1MantleAmount);
-        assertEq(l1MantleToken.balanceOf(address(mtm)), l1MantleAmount);
-
-        // unpause MantleTokenMigrator
-        mtm.unpause();
-
-        vm.prank(address(2));
-        // address(2) approve bitAmount BIT
-        bit.approve(address(mtm), bitAmount);
-        assertEq(bit.allowance(address(2), address(mtm)), bitAmount);
-
-        // swap token
-        vm.prank(address(2));
-        mtm.migrate(bitAmount);
-
-        assertEq(mtm.bitAmountMigrated(), bitAmount);
-        assertEq(mtm.mantleAmountMigrated(), (bitAmount * mtm.CONVERSION_NUMERATOR()) / mtm.CONVERSION_DENOMINATOR());
-        assertEq(bit.balanceOf(address(mtm)), bitAmount);
-        assertEq(l1MantleToken.balanceOf(address(mtm)), l1MantleAmount - mtm.mantleAmountMigrated());
-    }
-
-    function testMigrateInsufficient() public {
-        uint256 bitAmount = 10000;
-        uint256 l1MantleAmount = 10000;
-
-        // mint bitAmount BIT to address(2)
-        bit.mint(address(2), bitAmount);
-
-        // transfer l1MantleAmount l1MantleToken to MantleTokenMigrator contract
-        mtm.setMantle(address(l1MantleToken));
-        l1MantleToken.transfer(address(mtm), l1MantleAmount);
-        assertEq(l1MantleToken.balanceOf(address(mtm)), l1MantleAmount);
-
-        // unpause MantleTokenMigrator
-        mtm.unpause();
-
-        vm.prank(address(2));
-        // address(2) approve bitAmount BIT
-        bit.approve(address(mtm), bitAmount);
-        assertEq(bit.allowance(address(2), address(mtm)), bitAmount);
-
-        // swap token
-        vm.expectRevert("Insufficient mantle tokens");
-        vm.prank(address(2));
-        mtm.migrate(bitAmount);
+    function _fundContractWithTokenTwo() internal {
+        // fund the contract
+        vm.startPrank(treasury);
+        tokenTwo.transfer(address(mantleTokenMigrator), 42069 ether);
+        vm.stopPrank();
     }
 }

@@ -10,7 +10,6 @@ import "forge-std/Test.sol";
 import "./mocks/EmptyContract.sol";
 
 contract L1MantleTokenTest is Test {
-
     ProxyAdmin public proxyAdmin;
     L1MantleToken public l1MantleToken;
     uint256 _initialSupply = 10e10;
@@ -21,9 +20,8 @@ contract L1MantleTokenTest is Test {
         proxyAdmin = new ProxyAdmin();
         EmptyContract emptyContract = new EmptyContract();
 
-        l1MantleToken = L1MantleToken(
-            address(new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), ""))
-        );
+        l1MantleToken =
+            L1MantleToken(address(new TransparentUpgradeableProxy(address(emptyContract), address(proxyAdmin), "")));
 
         L1MantleToken l1MantleTokenImplementation = new L1MantleToken();
 
@@ -35,7 +33,6 @@ contract L1MantleTokenTest is Test {
     }
 
     function testInfo() public {
-
         assertEq(l1MantleToken.name(), "Mantle");
         assertEq(l1MantleToken.symbol(), "MNT");
         assertEq(l1MantleToken.decimals(), 18);
@@ -45,36 +42,34 @@ contract L1MantleTokenTest is Test {
         assertEq(l1MantleToken.nextMint(), 365 * 24 * 60 * 60 + 1);
     }
 
-    function testInitialize() public{
-
+    function testInitialize() public {
         assertEq(l1MantleToken.totalSupply(), 10e10);
         assertEq(l1MantleToken.owner(), initialOwner);
     }
 
     function testSetMintCapNumerator(uint256 _mintCapNumerator) public {
-  
         l1MantleToken.setMintCapNumerator(_mintCapNumerator);
         uint256 postSet = l1MantleToken.mintCapNumerator();
         assertEq(postSet, _mintCapNumerator);
     }
 
-    function testMintOnlyOwner() public{
+    function testMintOnlyOwner() public {
         vm.expectRevert("Ownable: caller is not the owner");
         vm.prank(address(0));
         l1MantleToken.mint(mintTo, 1);
     }
 
-    function testMintTooMuch1() public{
+    function testMintTooMuch1() public {
         vm.expectRevert("MANTLE: MINT_TOO_MUCH");
         l1MantleToken.mint(mintTo, 1);
     }
 
-    function testMintTooEarly1() public{
+    function testMintTooEarly1() public {
         vm.expectRevert("MANTLE: MINT_TOO_EARLY");
         l1MantleToken.mint(mintTo, 0);
     }
 
-    function testMintTooEarly2() public{
+    function testMintTooEarly2() public {
         l1MantleToken.setMintCapNumerator(200);
         uint256 postSet = l1MantleToken.mintCapNumerator();
         assertEq(postSet, 200);
@@ -83,7 +78,7 @@ contract L1MantleTokenTest is Test {
         l1MantleToken.mint(mintTo, 1);
     }
 
-    function testMintTooEarly3() public{
+    function testMintTooEarly3() public {
         l1MantleToken.setMintCapNumerator(200);
         uint256 postSet = l1MantleToken.mintCapNumerator();
         assertEq(postSet, 200);
@@ -94,7 +89,7 @@ contract L1MantleTokenTest is Test {
         l1MantleToken.mint(mintTo, 1);
     }
 
-    function testMint() public{
+    function testMint() public {
         l1MantleToken.setMintCapNumerator(200);
         uint256 postSet = l1MantleToken.mintCapNumerator();
         assertEq(postSet, 200);
@@ -108,7 +103,7 @@ contract L1MantleTokenTest is Test {
         assertEq(preBalance + maxAmount, postBalance);
     }
 
-    function testMintTooMuch2() public{
+    function testMintTooMuch2() public {
         l1MantleToken.setMintCapNumerator(200);
         uint256 postSet = l1MantleToken.mintCapNumerator();
         assertEq(postSet, 200);
@@ -120,7 +115,7 @@ contract L1MantleTokenTest is Test {
         l1MantleToken.mint(mintTo, maxAmount + 1);
     }
 
-    function testMintTooEarly4() public{
+    function testMintTooEarly4() public {
         l1MantleToken.setMintCapNumerator(200);
         uint256 postSet = l1MantleToken.mintCapNumerator();
         assertEq(postSet, 200);
@@ -134,8 +129,6 @@ contract L1MantleTokenTest is Test {
         l1MantleToken.mint(mintTo, 1);
     }
 }
-
-
 
 // allowance
 // approve

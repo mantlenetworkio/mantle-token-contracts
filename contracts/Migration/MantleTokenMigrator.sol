@@ -1,148 +1,309 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.9;
+pragma solidity 0.8.13;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {ERC20} from "solmate/tokens/ERC20.sol";
+import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 
-/**
- * @title   Contract to convert BIT (BITDAO) tokens to MNT (Mantle) tokens.
- *
- * @notice  Enable BIT token holders to convert their BIT tokens into MNT tokens.
- *
- * @dev     Provide the following functionalities:
- *          1. Deposit MNT (Mantle) tokens into this contract.
- *          2. Convert BIT tokens to MNT tokens using a pre-defined convertion rate 1 BIT = 3.14 MNT.
- *          3. Enable/disable conversion.
- */
-contract MantleTokenMigrator is Ownable {
-    using SafeERC20 for IERC20;
+/// @title A simulator for trees
+/// @author 0xMantle
+/// @notice Token migration contract for the BIT to MNT token migration
+contract MantleTokenMigrator {
+    using SafeTransferLib for ERC20;
 
-    /**
-     *  The conversion ratio is 3.14 = 314/100 (~Pi) and is specified by a denominator/numerator.
-     */
-    /** Denominator of conversion ratio. */
-    uint256 public constant CONVERSION_DENOMINATOR = 100;
-    /** Numerator of conversion ratio. */
-    uint256 public constant CONVERSION_NUMERATOR = 314;
-
-    /// Events
-    event Migrate(address indexed from, uint256 mantleAmount);
-
-    /* ========== MIGRATION ========== */
     /* ========== STATE VARIABLES ========== */
 
-    /** The ERC20 BIT contract. Can only be set once. */
-    IERC20 public immutable bit;
-    /** The ERC-20 MNT contract. */
-    IERC20 public mantle;
+    /// @dev The address of the BIT token contract
+    address public immutable BIT_TOKEN_ADDRESS;
 
-    /** Whether conversion is enabled or not. */
-    bool public enabled;
+    /// @dev The address of the MNT token contract
+    address public immutable MNT_TOKEN_ADDRESS;
 
-    /**  Amount of BIT tokens converted by BIT token holders so far. */
-    uint256 public bitAmountMigrated;
-    /** Amount of MNT tokens credited to BIT token holders who have converted BIT tokens. */
-    uint256 public mantleAmountMigrated;
+    /// @dev The numerator of the token conversion rate
+    uint256 public immutable TOKEN_CONVERSION_NUMERATOR;
 
-    /**
-     *  Set the address of the BIT token ERC-20 contract.
-     *
-     *  @dev    An arbitrary address can be passed as argument and will be
-     *          cast to en ERC20 contract.
-     *
-     *  @param  _bit    The address of the ERC-20 BIT token contract.
-     *
-     *  Requirements:
-     *      - `_bit` cannot be the zero address.
-     */
-    constructor(address _bit) {
-        require(_bit != address(0), "Initialisation of ERC-20 BIT contract cannot be zerobit");
-        bit = IERC20(_bit);
+    /// @dev The denominator of the token conversion rate
+    uint256 public immutable TOKEN_CONVERSION_DENOMINATOR;
+
+    /// @dev The address of the treasury contract that receives defunded tokens
+    address public treasury;
+
+    /// @dev The address of the owner of the contract
+    address public owner;
+
+    /// @dev Boolean indicating if this contract is halted
+    bool public halted;
+
+    /* ========== EVENTS ========== */
+
+    // TokenSwap Events
+
+    /// @dev Emitted when a user swaps BIT for MNT
+    /// @param to The address of the user that swapped BIT for MNT
+    /// @param amountOfBitSwapped The amount of BIT swapped
+    /// @param amountOfMntReceived The amount of MNT received
+    event TokensMigrated(address indexed to, uint256 amountOfBitSwapped, uint256 amountOfMntReceived);
+
+    // Contract State Events
+
+    /// @dev Emitted when the owner of the contract is changed
+    /// @param previousOwner The address of the previous owner of this contract
+    /// @param newOwner The address of the new owner of this contract
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
+    /// @dev Emitted when the contract is halted
+    /// @param halter The address of the caller that halted this contract
+    event ContractHalted(address indexed halter);
+
+    /// @dev Emitted when the contract is unhalted
+    /// @param halter The address of the caller that unhalted this contract
+    event ContractUnhalted(address indexed halter);
+
+    /// @dev Emitted when the treasury address is changed
+    /// @param previousTreasury The address of the previous treasury
+    /// @param newTreasury The address of the new treasury
+    event TreasuryChanged(address indexed previousTreasury, address indexed newTreasury);
+
+    // Admin Events
+
+    /// @dev Emitted when non BIT/MNT tokens are swept from the contract by the owner to the recipient address
+    /// @param token The address of the token contract that was swept
+    /// @param recipient The address of the recipient of the swept tokens
+    /// @param amount The amount of tokens swept
+    event TokensSwept(address indexed token, address indexed recipient, uint256 amount);
+
+    /// @dev Emitted when BIT/MNT tokens are defunded from the contract by the owner to the treasury
+    /// @param defunder The address of the defunder
+    /// @param token The address of the token contract that was defunded
+    /// @param amount The amount of tokens defunded
+    event ContractDefunded(address indexed defunder, address indexed token, uint256 amount);
+
+    /* ========== ERRORS ========== */
+
+    /// @notice Thrown when the caller is not the owner and the function being called uses the {onlyOwner} modifier
+    /// @param caller The address of the caller
+    error MantleTokenMigrator_OnlyOwner(address caller);
+
+    /// @notice Thrown when the contract is halted and the function being called uses the {onlyWhenNotHalted} modifier
+    error MantleTokenMigrator_OnlyWhenNotHalted();
+
+    /// @notice Thrown when the input passed into the {_migrateTokens} function is zero
+    error MantleTokenMigrator_ZeroSwap();
+
+    /// @notice Thrown when at least one of the inputs passed into the constructor is a zero value
+    error MantleTokenMigrator_ImproperlyInitialized();
+
+    /// @notice Thrown when the {_tokenAddress} passed into the {sweepTokens} function is the BIT or MNT token address
+    /// @param token The address of the token contract
+    error MantleTokenMigrator_SweepNotAllowed(address token);
+
+    /// @notice Thrown when the {_tokenAddress} passed into the {defundContract} function is NOT the BIT or MNT token address
+    /// @param token The address of the token contract
+    error MantleTokenMigrator_InvalidFundingToken(address token);
+
+    /// @notice Thrown when the contract receives a call with an invalid {msg}.data payload
+    /// @param data The msg.data payload
+    error MantleTokenMigrator_InvalidMessageData(bytes data);
+
+    /// @notice Thrown when the contract receives a call with a non-zero {msg.value}
+    error MantleTokenMigrator_EthNotAccepted();
+
+    /* ========== MODIFIERS ========== */
+
+    /// @notice Modifier that checks that the caller is the owner of the contract
+    /// @dev Throws {MantleTokenMigrator_OnlyOwner} if the caller is not the owner
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert MantleTokenMigrator_OnlyOwner(msg.sender);
+        _;
     }
 
-    /**
-     *  Enable users to convert BIT token to MNT tokens.
-     *
-     *  @dev    The token conversion comprises the following steps:
-     *          1.  transfer _bitAmount of BIT (`bit` ERC-20 token contract ) from `msg.sender` to `this`.
-     *          2.  transfer the corresponding amount of MNT (`mantle` ERC-20 token contract) from `this` to `msg.sender`.
-     *          As we are using a decimal conversion ratio, a small amount of MNT may be lost due to rounding.
-     *          For instance, converting 101 BIT results to MNT should yield 317.14 MNT which with interger division
-     *          is rounded down to 317. The amount lost a conversion is negilgible and always less than 1**-18 MNT.
-     *
-     *  @param  _bitAmount  The amount of BIT tokens to convert.
-     *
-     *  Requirements:
-     *      - conversion must be enabled
-     *      - the balance of `this` contract must be larger or equal than the amount of MNT to transfer.
-     *
-     */
-    function migrate(uint256 _bitAmount) external {
-        require(enabled, "Migration not enabled");
-
-        uint256 mantleAmount = (_bitAmount * CONVERSION_NUMERATOR) / CONVERSION_DENOMINATOR;
-
-        bit.safeTransferFrom(msg.sender, address(this), _bitAmount);
-
-        bitAmountMigrated = bitAmountMigrated + _bitAmount;
-        mantleAmountMigrated = mantleAmountMigrated + mantleAmount;
-        uint256 mantleAmountBalance = IERC20(mantle).balanceOf(address(this));
-        require(mantleAmount <= mantleAmountBalance, "Insufficient mantle tokens");
-
-        mantle.safeTransfer(msg.sender, mantleAmount);
-        emit Migrate(msg.sender, mantleAmount);
+    /// @notice Modifier that checks that the contract is not halted
+    /// @dev Throws {MantleTokenMigrator_OnlyWhenNotHalted} if the contract is halted
+    modifier onlyWhenNotHalted() {
+        if (halted) revert MantleTokenMigrator_OnlyWhenNotHalted();
+        _;
     }
 
-    /**
-     *  Enable conversion for users.
-     *
-     *  Requirements:
-     *      - can only be set by owner.
-     */
-    function unpause() external onlyOwner {
-        enabled = true;
+    /// @notice Initializes the MantleTokenMigrator contract, setting the initial deployer as the contract owner
+    /// @dev _bitTokenAddress, _mntTokenAddress, _tokenConversionNumerator, and _tokenConversionDenominator are immutable: they can only be set once during construction
+    /// @dev the contract is initialized in a halted state
+    /// @dev Requirements:
+    ///     - all parameters must be non-zero
+    ///     - _bitTokenAddress and _mntTokenAddress are assumed to have the same number of decimals
+    /// @param _bitTokenAddress The address of the BIT token contract
+    /// @param _mntTokenAddress The address of the MNT token contract
+    /// @param _treasury The address of the treasury contract that receives defunded tokens
+    /// @param _tokenConversionNumerator The numerator of the token conversion rate
+    /// @param _tokenConversionDenominator The denominator of the token conversion rate
+    constructor(
+        address _bitTokenAddress,
+        address _mntTokenAddress,
+        address _treasury,
+        uint256 _tokenConversionNumerator,
+        uint256 _tokenConversionDenominator
+    ) {
+        if (
+            _bitTokenAddress == address(0) || _mntTokenAddress == address(0) || _treasury == address(0)
+                || _tokenConversionNumerator == 0 || _tokenConversionDenominator == 0
+        ) revert MantleTokenMigrator_ImproperlyInitialized();
+
+        owner = msg.sender;
+        halted = true;
+
+        BIT_TOKEN_ADDRESS = _bitTokenAddress;
+        MNT_TOKEN_ADDRESS = _mntTokenAddress;
+
+        treasury = _treasury;
+
+        TOKEN_CONVERSION_NUMERATOR = _tokenConversionNumerator;
+        TOKEN_CONVERSION_DENOMINATOR = _tokenConversionDenominator;
     }
 
-    /**
-     *  Disable conversion for users.
-     *
-     *  Requirements:
-     *      - can only be set by owner.
-     */
-    function pause() external onlyOwner {
-        enabled = false;
+    /* ========== FALLBACKS ========== */
+
+    /// @notice Fallback function that reverts if non-valid calldata is sent to the contract
+    fallback() external payable {
+        if (msg.data.length != 0) revert MantleTokenMigrator_InvalidMessageData(msg.data);
     }
 
-    /**
-     *  Set the MNT ERC-20 mantle address.
-     */
-    function setMantle(address _mantle) external onlyOwner {
-        require(address(mantle) == address(0), "Already set, only can be set once");
-        require(_mantle != address(0), "ERC-20 MNT contract cannot be zerobit");
-
-        mantle = IERC20(_mantle);
+    /// @notice Receive function that reverts if ETH is sent to the contract with a call
+    /// @dev This function is called whenever the contract receives ETH
+    /// @dev ETH can still be forced into this contract with a selfdestruct, but it has no impact on the contract state
+    receive() external payable {
+        revert MantleTokenMigrator_EthNotAccepted();
     }
 
-    /**
-     *  Withdraw erc20 tokens.
-     *
-     *  Requirements:
-     *      - can only be set by owner.
-     */
-    function withdrawToken(address tokenAddress, uint256 amount, address recipient) external onlyOwner {
-        require(tokenAddress != address(0), "Token address cannot be 0x0");
-        require(amount > 0, "Withdraw value must be greater than 0");
-        if (recipient == address(0)) {
-            recipient = msg.sender; // if no address is specified the value will will be withdrawn to Owner
+    /* ========== TOKEN SWAPPING ========== */
+
+    /// @notice Swaps all of the caller's BIT tokens for MNT tokens
+    /// @dev emits a {TokensMigrated} event
+    /// @dev Requirements:
+    ///     - The caller must have approved this contract to spend their BIT tokens
+    ///     - The caller must have a non-zero balance of BIT tokens
+    function migrateAllBIT() external onlyWhenNotHalted {
+        uint256 amount = ERC20(BIT_TOKEN_ADDRESS).balanceOf(msg.sender);
+        _migrateTokens(amount);
+    }
+
+    /// @notice Swaps a specified amount of the caller's BIT tokens for MNT tokens
+    /// @dev emits a {TokensMigrated} event
+    /// @dev Requirements:
+    ///     - The caller must have approved this contract to spend at least {_amount} of their BIT tokens
+    ///     - The caller must have a balance of at least {_amount} of BIT tokens
+    /// @param _amount The amount of BIT tokens to swap
+    function migrateBIT(uint256 _amount) external onlyWhenNotHalted {
+        _migrateTokens(_amount);
+    }
+
+    /// @notice Calculates the amount of MNT tokens to be recieved for a given amount of BIT tokens
+    /// @param _amount The amount of BIT tokens to swap
+    /// @return The amount of MNT tokens to be recieved
+    function tokenMigrationAmountToReceive(uint256 _amount) external view returns (uint256) {
+        return _tokenSwapCalculation(_amount);
+    }
+
+    /// @notice Internal function that swaps a specified amount of the caller's BIT tokens for MNT tokens
+    /// @dev emits a {TokensMigrated} event
+    /// @dev Requirements:
+    ///     - The caller must have approved this contract to spend at least {_amount} of their BIT tokens
+    ///     - The caller must have a balance of at least {_amount} of BIT tokens
+    /// @param _amount The amount of BIT tokens to swap
+    function _migrateTokens(uint256 _amount) internal {
+        if (_amount == 0) revert MantleTokenMigrator_ZeroSwap();
+
+        uint256 amountToSwap = _tokenSwapCalculation(_amount);
+
+        // transfer user's BIT tokens to this contract
+        ERC20(BIT_TOKEN_ADDRESS).safeTransferFrom(msg.sender, address(this), _amount);
+
+        // transfer MNT tokens to user, if there are insufficient tokens, in the contract this will revert
+        ERC20(MNT_TOKEN_ADDRESS).safeTransfer(msg.sender, amountToSwap);
+
+        emit TokensMigrated(msg.sender, _amount, amountToSwap);
+    }
+
+    /// @notice Internal function that calculates the amount of MNT tokens to be recieved for a given amount of BIT tokens
+    /// @param _amount The amount of BIT tokens to swap
+    /// @return The amount of MNT tokens to be recieved
+    function _tokenSwapCalculation(uint256 _amount) internal view returns (uint256) {
+        return (_amount * TOKEN_CONVERSION_NUMERATOR) / TOKEN_CONVERSION_DENOMINATOR;
+    }
+
+    /* ========== ADMIN UTILS ========== */
+
+    // Ownership Functions
+
+    /// @notice Transfers ownership of the contract to a new address
+    /// @dev emits an {OwnershipTransferred} event
+    function transferOwnership(address _newOwner) public onlyOwner {
+        owner = _newOwner;
+
+        emit OwnershipTransferred(msg.sender, _newOwner);
+    }
+
+    // Contract State Functions
+
+    /// @notice Halts the contract, preventing token migrations
+    /// @dev emits a {ContractHalted} event
+    function haltContract() public onlyOwner {
+        halted = true;
+
+        emit ContractHalted(msg.sender);
+    }
+
+    /// @notice Unhalts the contract, allowing token migrations
+    /// @dev emits a {ContractUnhalted} event
+    function unhaltContract() public onlyOwner {
+        halted = false;
+
+        emit ContractUnhalted(msg.sender);
+    }
+
+    /// @notice Sets the treasury address
+    /// @dev emits a {TreasuryChanged} event
+    function setTreasury(address _treasury) public onlyOwner {
+        address oldTreasury = treasury;
+        treasury = _treasury;
+
+        emit TreasuryChanged(oldTreasury, _treasury);
+    }
+
+    // Token Management Functions
+
+    /// @notice Defunds the contract by transferring a specified amount of BIT or MNT tokens to the treasury address
+    /// @dev emits a {ContractDefunded} event
+    /// @dev Requirements:
+    ///     - The caller must be the contract owner
+    ///     - {_tokenAddress} must be either the BIT or the MNT token address
+    ///     - The contract must have a balance of at least {_amount} of {_tokenAddress} tokens
+    /// @param _tokenAddress The address of the token to defund
+    /// @param _amount The amount of tokens to defund
+    function defundContract(address _tokenAddress, uint256 _amount) public onlyOwner {
+        if (_tokenAddress != BIT_TOKEN_ADDRESS && _tokenAddress != MNT_TOKEN_ADDRESS) {
+            revert MantleTokenMigrator_InvalidFundingToken(_tokenAddress);
         }
 
-        IERC20 tokenContract = IERC20(tokenAddress);
-        uint256 contractBalance = tokenContract.balanceOf(address(this));
-        if (amount > contractBalance) {
-            amount = contractBalance; // set the withdrawal amount equal to balance within the account.
-        }
+        // we can only defund BIT or MNT into the predefined treasury address
+        ERC20(_tokenAddress).safeTransfer(treasury, _amount);
 
-        tokenContract.safeTransfer(recipient, amount);
+        emit ContractDefunded(treasury, _tokenAddress, _amount);
+    }
+
+    /// @notice Sweeps a specified amount of tokens to an arbitrary address
+    /// @dev emits a {TokensSwept} event
+    /// @dev Requirements:
+    ///     - The caller must be the contract owner
+    ///     - {_tokenAddress} must not the BIT or the MNT token address
+    ///     - The contract must have a balance of at least {_amount} of {_tokenAddress} tokens
+    /// @param _tokenAddress The address of the token to sweep
+    /// @param _recipient The address to sweep the tokens to
+    /// @param _amount The amount of tokens to sweep
+    function sweepTokens(address _tokenAddress, address _recipient, uint256 _amount) public onlyOwner {
+        // we can only sweep tokens that are not BIT or MNT to an arbitrary addres
+        if ((_tokenAddress == address(BIT_TOKEN_ADDRESS)) || (_tokenAddress == address(MNT_TOKEN_ADDRESS))) {
+            revert MantleTokenMigrator_SweepNotAllowed(_tokenAddress);
+        }
+        ERC20(_tokenAddress).safeTransfer(_recipient, _amount);
+
+        emit TokensSwept(_tokenAddress, _recipient, _amount);
     }
 }
