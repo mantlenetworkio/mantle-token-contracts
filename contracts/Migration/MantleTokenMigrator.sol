@@ -23,7 +23,7 @@ contract MantleTokenMigrator {
 
     /// @dev The denominator of the token conversion rate
     uint256 public immutable TOKEN_CONVERSION_DENOMINATOR;
-    
+
     /// @dev The address of the treasury contract that receives defunded tokens
     address public treasury;
 
@@ -100,7 +100,6 @@ contract MantleTokenMigrator {
     /// @param token The address of the token contract
     error MantleTokenMigrator_InvalidFundingToken(address token);
 
-
     /// @notice Thrown when the contract receives a call with an invalid {msg}.data payload
     /// @param data The msg.data payload
     error MantleTokenMigrator_InvalidMessageData(bytes data);
@@ -112,14 +111,14 @@ contract MantleTokenMigrator {
 
     /// @notice Modifier that checks that the caller is the owner of the contract
     /// @dev Throws {MantleTokenMigrator_OnlyOwner} if the caller is not the owner
-    modifier onlyOwner {
+    modifier onlyOwner() {
         if (msg.sender != owner) revert MantleTokenMigrator_OnlyOwner(msg.sender);
         _;
     }
 
     /// @notice Modifier that checks that the contract is not halted
     /// @dev Throws {MantleTokenMigrator_OnlyWhenNotHalted} if the contract is halted
-    modifier onlyWhenNotHalted {
+    modifier onlyWhenNotHalted() {
         if (halted) revert MantleTokenMigrator_OnlyWhenNotHalted();
         _;
     }
@@ -127,7 +126,7 @@ contract MantleTokenMigrator {
     /// @notice Initializes the MantleTokenMigrator contract, setting the initial deployer as the contract owner
     /// @dev _bitTokenAddress, _mntTokenAddress, _tokenConversionNumerator, and _tokenConversionDenominator are immutable: they can only be set once during construction
     /// @dev the contract is initialized in a halted state
-    /// @dev Requirements: 
+    /// @dev Requirements:
     ///     - all parameters must be non-zero
     ///     - _bitTokenAddress and _mntTokenAddress are assumed to have the same number of decimals
     /// @param _bitTokenAddress The address of the BIT token contract
@@ -135,12 +134,21 @@ contract MantleTokenMigrator {
     /// @param _treasury The address of the treasury contract that receives defunded tokens
     /// @param _tokenConversionNumerator The numerator of the token conversion rate
     /// @param _tokenConversionDenominator The denominator of the token conversion rate
-    constructor(address _bitTokenAddress, address _mntTokenAddress, address _treasury, uint256 _tokenConversionNumerator, uint256 _tokenConversionDenominator) {
-        if (_bitTokenAddress == address(0) || _mntTokenAddress == address(0) || _treasury == address(0) || _tokenConversionNumerator== 0 || _tokenConversionDenominator == 0) revert MantleTokenMigrator_ImproperlyInitialized();
+    constructor(
+        address _bitTokenAddress,
+        address _mntTokenAddress,
+        address _treasury,
+        uint256 _tokenConversionNumerator,
+        uint256 _tokenConversionDenominator
+    ) {
+        if (
+            _bitTokenAddress == address(0) || _mntTokenAddress == address(0) || _treasury == address(0)
+                || _tokenConversionNumerator == 0 || _tokenConversionDenominator == 0
+        ) revert MantleTokenMigrator_ImproperlyInitialized();
 
         owner = msg.sender;
         halted = true;
-        
+
         BIT_TOKEN_ADDRESS = _bitTokenAddress;
         MNT_TOKEN_ADDRESS = _mntTokenAddress;
 
@@ -149,7 +157,6 @@ contract MantleTokenMigrator {
         TOKEN_CONVERSION_NUMERATOR = _tokenConversionNumerator;
         TOKEN_CONVERSION_DENOMINATOR = _tokenConversionDenominator;
     }
-
 
     /* ========== FALLBACKS ========== */
 
@@ -162,7 +169,6 @@ contract MantleTokenMigrator {
     /// @dev This function is called whenever the contract receives ETH
     /// @dev ETH can still be forced into this contract with a selfdestruct, but it has no impact on the contract state
     receive() external payable {
-
         revert MantleTokenMigrator_EthNotAccepted();
     }
 
@@ -173,7 +179,7 @@ contract MantleTokenMigrator {
     /// @dev Requirements:
     ///     - The caller must have approved this contract to spend their BIT tokens
     ///     - The caller must have a non-zero balance of BIT tokens
-    function migrateAllBIT() onlyWhenNotHalted external {
+    function migrateAllBIT() external onlyWhenNotHalted {
         uint256 amount = ERC20(BIT_TOKEN_ADDRESS).balanceOf(msg.sender);
         _migrateTokens(amount);
     }
@@ -184,7 +190,7 @@ contract MantleTokenMigrator {
     ///     - The caller must have approved this contract to spend at least {_amount} of their BIT tokens
     ///     - The caller must have a balance of at least {_amount} of BIT tokens
     /// @param _amount The amount of BIT tokens to swap
-    function migrateBIT(uint256 _amount) onlyWhenNotHalted external {
+    function migrateBIT(uint256 _amount) external onlyWhenNotHalted {
         _migrateTokens(_amount);
     }
 
@@ -272,7 +278,9 @@ contract MantleTokenMigrator {
     /// @param _tokenAddress The address of the token to defund
     /// @param _amount The amount of tokens to defund
     function defundContract(address _tokenAddress, uint256 _amount) public onlyOwner {
-        if (_tokenAddress != BIT_TOKEN_ADDRESS && _tokenAddress != MNT_TOKEN_ADDRESS) revert MantleTokenMigrator_InvalidFundingToken(_tokenAddress);
+        if (_tokenAddress != BIT_TOKEN_ADDRESS && _tokenAddress != MNT_TOKEN_ADDRESS) {
+            revert MantleTokenMigrator_InvalidFundingToken(_tokenAddress);
+        }
 
         // we can only defund BIT or MNT into the predefined treasury address
         ERC20(_tokenAddress).safeTransfer(treasury, _amount);
@@ -291,10 +299,11 @@ contract MantleTokenMigrator {
     /// @param _amount The amount of tokens to sweep
     function sweepTokens(address _tokenAddress, address _recipient, uint256 _amount) public onlyOwner {
         // we can only sweep tokens that are not BIT or MNT to an arbitrary addres
-        if ((_tokenAddress == address(BIT_TOKEN_ADDRESS)) || (_tokenAddress == address(MNT_TOKEN_ADDRESS))) revert MantleTokenMigrator_SweepNotAllowed(_tokenAddress);
+        if ((_tokenAddress == address(BIT_TOKEN_ADDRESS)) || (_tokenAddress == address(MNT_TOKEN_ADDRESS))) {
+            revert MantleTokenMigrator_SweepNotAllowed(_tokenAddress);
+        }
         ERC20(_tokenAddress).safeTransfer(_recipient, _amount);
 
         emit TokensSwept(_tokenAddress, _recipient, _amount);
     }
-
 }

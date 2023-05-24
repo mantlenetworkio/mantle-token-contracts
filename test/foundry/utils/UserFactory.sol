@@ -6,8 +6,7 @@ import {Vm} from "forge-std/Vm.sol";
 //common utilities for forge tests
 // from https://github.com/OlympusDAO/olympus-v3/blob/master/src/test/lib/UserFactory.sol
 contract UserFactory {
-    address internal constant HEVM_ADDRESS =
-        address(bytes20(uint160(uint256(keccak256("hevm cheat code")))));
+    address internal constant HEVM_ADDRESS = address(bytes20(uint160(uint256(keccak256("hevm cheat code")))));
 
     Vm internal immutable vm = Vm(HEVM_ADDRESS);
 
