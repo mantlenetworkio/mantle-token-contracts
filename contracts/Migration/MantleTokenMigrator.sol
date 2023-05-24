@@ -4,7 +4,7 @@ pragma solidity 0.8.13;
 import {ERC20} from "solmate/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/utils/SafeTransferLib.sol";
 
-/// @title A simulator for trees
+/// @title Mantle Token Migrator
 /// @author 0xMantle
 /// @notice Token migration contract for the BIT to MNT token migration
 contract MantleTokenMigrator {
@@ -179,6 +179,7 @@ contract MantleTokenMigrator {
     /// @dev Requirements:
     ///     - The caller must have approved this contract to spend their BIT tokens
     ///     - The caller must have a non-zero balance of BIT tokens
+    ///     - The contract must not be halted
     function migrateAllBIT() external onlyWhenNotHalted {
         uint256 amount = ERC20(BIT_TOKEN_ADDRESS).balanceOf(msg.sender);
         _migrateTokens(amount);
@@ -189,6 +190,7 @@ contract MantleTokenMigrator {
     /// @dev Requirements:
     ///     - The caller must have approved this contract to spend at least {_amount} of their BIT tokens
     ///     - The caller must have a balance of at least {_amount} of BIT tokens
+    ///     - The contract must not be halted
     /// @param _amount The amount of BIT tokens to swap
     function migrateBIT(uint256 _amount) external onlyWhenNotHalted {
         _migrateTokens(_amount);
@@ -234,6 +236,8 @@ contract MantleTokenMigrator {
 
     /// @notice Transfers ownership of the contract to a new address
     /// @dev emits an {OwnershipTransferred} event
+    /// @dev Requirements:
+    ///     - The caller must be the contract owner
     function transferOwnership(address _newOwner) public onlyOwner {
         owner = _newOwner;
 
@@ -244,6 +248,8 @@ contract MantleTokenMigrator {
 
     /// @notice Halts the contract, preventing token migrations
     /// @dev emits a {ContractHalted} event
+    /// @dev Requirements:
+    ///     - The caller must be the contract owner
     function haltContract() public onlyOwner {
         halted = true;
 
@@ -252,6 +258,8 @@ contract MantleTokenMigrator {
 
     /// @notice Unhalts the contract, allowing token migrations
     /// @dev emits a {ContractUnhalted} event
+    /// @dev Requirements:
+    ///     - The caller must be the contract owner
     function unhaltContract() public onlyOwner {
         halted = false;
 
@@ -260,6 +268,8 @@ contract MantleTokenMigrator {
 
     /// @notice Sets the treasury address
     /// @dev emits a {TreasuryChanged} event
+    /// @dev Requirements:
+    ///     - The caller must be the contract owner
     function setTreasury(address _treasury) public onlyOwner {
         address oldTreasury = treasury;
         treasury = _treasury;
