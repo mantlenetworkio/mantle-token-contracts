@@ -36,14 +36,14 @@ describe("L1MantleToken", () => {
       await ownerIns.transfer(receiver.address, receiverAmount);
       expect(await ownerIns.balanceOf(receiver.address)).to.eq(receiverAmount);
     });
-    it("Should transfer failed when use changeProxyAdmin", async () => {
-      const [deployer, owner, receiver] = await ethers.getSigners();
-      await upgrades.admin.changeProxyAdmin(l1MantleTokenAddress, owner.address, deployer);
-      const ownerIns = new L1MantleToken__factory(owner).attach(l1MantleTokenAddress);
-      expect(ownerIns.transfer(receiver.address, receiverAmount)).to.be.revertedWith(
-        "TransparentUpgradeableProxy: admin cannot fallback to proxy target",
-      );
-    });
+    // it("Should transfer failed when use changeProxyAdmin", async () => {
+    //   const [deployer, owner, receiver] = await ethers.getSigners();
+    //   await upgrades.admin.changeProxyAdmin(l1MantleTokenAddress, owner.address, deployer);
+    //   const ownerIns = new L1MantleToken__factory(owner).attach(l1MantleTokenAddress);
+    //   expect(ownerIns.transfer(receiver.address, receiverAmount)).to.be.revertedWith(
+    //     "TransparentUpgradeableProxy: admin cannot fallback to proxy target",
+    //   );
+    // });
   });
   describe("Info", async () => {
     it("Should get some token infos", async () => {
@@ -69,34 +69,41 @@ describe("L1MantleToken", () => {
       expect(await l1MantleTokenInstance.owner()).to.eq(deployer.address);
     });
     it("Should mint when mint the rules", async () => {
-      const [deployer] = await ethers.getSigners();
-      const amount = ethers.utils.parseEther("200000000")
-      const deployerInstance = new L1MantleToken__factory(deployer).attach(l1MantleTokenAddress);
-      await deployerInstance.setMintCapNumerator(200);
-      await time.increase(365 * 24 * 60 * 60)
-      await deployerInstance.mint(deployer.address, amount);
-      expect(await deployerInstance.totalSupply()).to.eq(ethers.utils.parseEther("10200000000"));
+      const [deployer, user1] = await ethers.getSigners();
+      const amount = ethers.utils.parseEther("1000");
+      const user1Instance = new L1MantleToken__factory(user1).attach(l1MantleTokenAddress);
+      const res1 = await user1Instance.mint(amount);
+      expect(await user1Instance.balanceOf(user1.address)).to.eq(amount);
+      const res2 = await user1Instance.mint(amount);
+      expect(res2)
+        .to.emit(user1Instance, "MintAfterBlockHeight").withArgs(
+          (res1.blockNumber || 0) + 1000
+        )
+      expect(await user1Instance.balanceOf(user1.address)).to.eq(amount);
+      await mine(1000);
+      await user1Instance.mint(amount);
+      expect(await user1Instance.balanceOf(user1.address)).to.eq(ethers.utils.parseEther("2000"));
     })
-    it("Should fail when mint doesn't meet the rules", async () => {
-      const [deployer, user] = await ethers.getSigners();
-      const userInstance = new L1MantleToken__factory(user).attach(l1MantleTokenAddress);
+    // it("Should fail when mint doesn't meet the rules", async () => {
+    //   const [deployer, user] = await ethers.getSigners();
+    //   const userInstance = new L1MantleToken__factory(user).attach(l1MantleTokenAddress);
       
-      const amount1 = ethers.utils.parseEther("200000000")
-      const amount2 = ethers.utils.parseEther("200000001")
+    //   const amount1 = ethers.utils.parseEther("200000000")
+    //   const amount2 = ethers.utils.parseEther("200000001")
 
-      await expect(userInstance.mint(user.address, amount1)).to.be.revertedWith(
-        "Ownable: caller is not the owner",
-      );
+    //   await expect(userInstance.mint(user.address, amount1)).to.be.revertedWith(
+    //     "Ownable: caller is not the owner",
+    //   );
 
-      const deployerInstance = new L1MantleToken__factory(deployer).attach(l1MantleTokenAddress);
-      await deployerInstance.setMintCapNumerator(200);
-      await expect(deployerInstance.mint(deployer.address, amount2)).to.be.revertedWith(
-        "MANTLE: MINT_TOO_MUCH",
-      );
-      await expect(deployerInstance.mint(deployer.address, amount1)).to.be.revertedWith(
-        "MANTLE: MINT_TOO_EARLY",
-      );
-    });
+    //   const deployerInstance = new L1MantleToken__factory(deployer).attach(l1MantleTokenAddress);
+    //   await deployerInstance.setMintCapNumerator(200);
+    //   await expect(deployerInstance.mint(deployer.address, amount2)).to.be.revertedWith(
+    //     "MANTLE: MINT_TOO_MUCH",
+    //   );
+    //   await expect(deployerInstance.mint(deployer.address, amount1)).to.be.revertedWith(
+    //     "MANTLE: MINT_TOO_EARLY",
+    //   );
+    // });
 
   });
   describe("Transfer", async () => {

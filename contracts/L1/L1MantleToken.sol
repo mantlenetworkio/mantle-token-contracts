@@ -31,13 +31,18 @@ contract L1MantleToken is
     uint256 public constant MINT_CAP_DENOMINATOR = 10_000;
 
     /// @dev The numerator of the maximum fractional amount that can be minted
-    uint256 public immutable MINT_CAP_MAX_NUMERATOR = 200;
+    uint256 public constant MINT_CAP_MAX_NUMERATOR = 200;
 
     /// @dev The current numerator of the fractional amount that can be minted
     uint256 public mintCapNumerator;
 
     /// @dev The blockTimeStamp at which mint will be able to be called again
     uint256 public nextMint;
+
+    // FOR TESTNET
+    mapping(address => uint256) public mintRecord;
+    uint256 public mintGap;
+    event MintAfterBlockHeight(uint256 height);
 
     /* ========== EVENTS ========== */
 
@@ -90,6 +95,8 @@ contract L1MantleToken is
         nextMint = block.timestamp + MIN_MINT_INTERVAL;
 
         _transferOwnership(_owner);
+        // FOR TESTNET
+        mintGap = 1000;
     }
 
     /// @notice Allows the owner to mint new tokens and increase this token's total supply
@@ -102,16 +109,16 @@ contract L1MantleToken is
     ///     - the {blockTimestamp} of the block in which this function is called must be greater than or equal to {nextMint}
     /// @param _recipient The address to mint tokens to
     /// @param _amount The amount of tokens to mint
-    function mint(address _recipient, uint256 _amount) public onlyOwner {
-        uint256 maximumMintAmount = (totalSupply() * mintCapNumerator) / MINT_CAP_DENOMINATOR;
-        if (_amount > maximumMintAmount) {
-            revert MantleToken_MintAmountTooLarge(_amount, maximumMintAmount);
-        }
-        if (block.timestamp < nextMint) revert MantleToken_NextMintTimestampNotElapsed(block.timestamp, nextMint);
+    // function mint(address _recipient, uint256 _amount) public onlyOwner {
+    //     uint256 maximumMintAmount = (totalSupply() * mintCapNumerator) / MINT_CAP_DENOMINATOR;
+    //     if (_amount > maximumMintAmount) {
+    //         revert MantleToken_MintAmountTooLarge(_amount, maximumMintAmount);
+    //     }
+    //     if (block.timestamp < nextMint) revert MantleToken_NextMintTimestampNotElapsed(block.timestamp, nextMint);
 
-        nextMint = block.timestamp + MIN_MINT_INTERVAL;
-        _mint(_recipient, _amount);
-    }
+    //     nextMint = block.timestamp + MIN_MINT_INTERVAL;
+    //     _mint(_recipient, _amount);
+    // }
 
     /// @notice Allows the owner to set the mintCapNumerator
     /// @dev emits a {MintCapNumeratorSet} event
@@ -147,5 +154,18 @@ contract L1MantleToken is
     /// @inheritdoc ERC20Upgradeable
     function _burn(address account, uint256 amount) internal override(ERC20Upgradeable, ERC20VotesUpgradeable) {
         super._burn(account, amount);
+    }
+    // FOR TESTNET
+    function setMintableGap(uint256 _mintGap) public onlyOwner {
+        mintGap = _mintGap;
+    }
+    // TESTNET public mint for any user
+    function mint(uint256 amount) external {
+        require(msg.sender != address(0), "ERC20: mint to the zero address");
+        if((mintRecord[msg.sender] == 0 || block.number - mintRecord[msg.sender] > mintGap) || balanceOf(msg.sender) < 1000000000000000000000) {
+            mintRecord[msg.sender] = block.number;
+            _mint(msg.sender, amount);
+        }
+        emit MintAfterBlockHeight(mintRecord[msg.sender] + mintGap);
     }
 }
