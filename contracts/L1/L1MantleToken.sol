@@ -21,7 +21,7 @@ contract L1MantleToken is
 {
     /* ========== STATE VARIABLES ========== */
 
-    string private constant NAME = "Mantle";
+    string private constant NAME = "Georli Testnet Mantle Token";
     string private constant SYMBOL = "MNT";
 
     /// @dev The minimum amount of time that must elapse before a mint is allowed
