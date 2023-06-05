@@ -50,7 +50,7 @@ describe("L1MantleToken", () => {
       const [deployer] = await ethers.getSigners();
       const l1MantleTokenInstance = new L1MantleToken__factory(deployer).attach(l1MantleTokenAddress);
 
-      expect(await l1MantleTokenInstance.name()).to.eq('Georli Testnet Mantle Token');
+      expect(await l1MantleTokenInstance.name()).to.eq('Goerli Testnet Mantle Token');
       expect(await l1MantleTokenInstance.symbol()).to.eq('MNT');
       expect(await l1MantleTokenInstance.decimals()).to.eq(18);
     });
