@@ -31,7 +31,7 @@ contract L1MantleToken is
     uint256 public constant MINT_CAP_DENOMINATOR = 10_000;
 
     /// @dev The numerator of the maximum fractional amount that can be minted
-    uint256 public immutable MINT_CAP_MAX_NUMERATOR = 200;
+    uint256 public constant MINT_CAP_MAX_NUMERATOR = 200;
 
     /// @dev The current numerator of the fractional amount that can be minted
     uint256 public mintCapNumerator;
