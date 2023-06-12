@@ -20,4 +20,4 @@ jobs:
       - name: Deploy locally
         run: |
           npx hardhat node &
-          yarn deploy local
+          yarn deploy hardhat
