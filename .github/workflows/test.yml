@@ -16,4 +16,8 @@ jobs:
           yarn
           cp .env.example .env
           yarn compile
-          yarn test
+          yarn test   
+      - name: Deploy locally
+        run: |
+          npx hardhat node &
+          yarn deploy local
