@@ -14,5 +14,6 @@ jobs:
       - name: yarn, compile, coverage
         run: |
           yarn
+          cp .env.example .env
           yarn compile
           yarn test
