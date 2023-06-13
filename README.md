@@ -1,5 +1,10 @@
 # Mantle Token
+![Hardhat tests](https://github.com/mantlenetworkio/mantle-token-contracts/actions/workflows/test.yml/badge.svg)
+![Forge tests](https://github.com/mantlenetworkio/mantle-token-contracts/actions/workflows/coverage.yml/badge.svg)
+
+# Usage
 This repository contains the Mantle token contract and the on chain migration mechanism. 
+
 ## Installation Prerequites
 This repository uses both the Hardhat and Foundry smart contract development frameworks. 
 
