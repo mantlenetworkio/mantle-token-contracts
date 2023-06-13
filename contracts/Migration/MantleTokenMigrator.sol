@@ -315,7 +315,7 @@ contract MantleTokenMigrator {
     /// @param _amount The amount of tokens to sweep
     function sweepTokens(address _tokenAddress, address _recipient, uint256 _amount) public onlyOwner {
         // we can only sweep tokens that are not BIT or MNT to an arbitrary addres
-        if ((_tokenAddress == address(BIT_TOKEN_ADDRESS)) || (_tokenAddress == address(MNT_TOKEN_ADDRESS))) {
+        if ((_tokenAddress == BIT_TOKEN_ADDRESS) || (_tokenAddress == MNT_TOKEN_ADDRESS)) {
             revert MantleTokenMigrator_SweepNotAllowed(_tokenAddress);
         }
         ERC20(_tokenAddress).safeTransfer(_recipient, _amount);
