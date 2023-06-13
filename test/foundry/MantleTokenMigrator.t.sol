@@ -86,6 +86,17 @@ contract MantleTokenMigratorTest is Test {
         vm.stopPrank();
     }
 
+    function test_TreasuryCannotBeSetToZeroValues() public {
+        vm.startPrank(deployer);
+
+        err = abi.encodeWithSignature("MantleTokenMigrator_InvalidTreasury(address)", address(0));
+
+        vm.expectRevert(err);
+        mantleTokenMigrator.setTreasury(address(0));
+
+        vm.stopPrank();
+    }
+
     function test_mantleTokenMigratorCorrectlyInitialized() public {
         // make sure the contract is initialized with the correct values
         assertEq(mantleTokenMigrator.owner(), deployer);

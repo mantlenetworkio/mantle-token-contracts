@@ -107,6 +107,9 @@ contract MantleTokenMigrator {
     /// @notice Thrown when the contract receives a call with a non-zero {msg.value}
     error MantleTokenMigrator_EthNotAccepted();
 
+    /// @notice Thrown when the treasury is the zero address
+    error MantleTokenMigrator_InvalidTreasury(address treasury);
+
     /* ========== MODIFIERS ========== */
 
     /// @notice Modifier that checks that the caller is the owner of the contract
@@ -271,6 +274,9 @@ contract MantleTokenMigrator {
     /// @dev Requirements:
     ///     - The caller must be the contract owner
     function setTreasury(address _treasury) public onlyOwner {
+        if (_treasury == address(0)) {
+            revert MantleTokenMigrator_InvalidTreasury(_treasury);
+        }
         address oldTreasury = treasury;
         treasury = _treasury;
 
