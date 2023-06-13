@@ -100,13 +100,6 @@ contract MantleTokenMigrator {
     /// @param token The address of the token contract
     error MantleTokenMigrator_InvalidFundingToken(address token);
 
-    /// @notice Thrown when the contract receives a call with an invalid {msg}.data payload
-    /// @param data The msg.data payload
-    error MantleTokenMigrator_InvalidMessageData(bytes data);
-
-    /// @notice Thrown when the contract receives a call with a non-zero {msg.value}
-    error MantleTokenMigrator_EthNotAccepted();
-
     /// @notice Thrown when the treasury is the zero address
     error MantleTokenMigrator_InvalidTreasury(address treasury);
 
