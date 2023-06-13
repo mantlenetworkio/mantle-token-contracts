@@ -364,17 +364,12 @@ contract MantleTokenMigratorTest is Test {
     function test_fallback() public {
         // assert that the fallback function reverts when a function that doesn't exist is called
         bytes memory messageData = bytes("absolutely invalid message data");
-        err = abi.encodeWithSignature("MantleTokenMigrator_InvalidMessageData(bytes)", messageData);
-        vm.expectRevert(err);
+        vm.expectRevert(bytes(""));
         (bool success,) = address(mantleTokenMigrator).call{value: 1}(messageData);
         assertTrue(success, "expectRevert: call did not revert");
-    }
 
-    function test_receive() public {
-        // assert that the receive function reverts when ether is sent to the contract
-        err = abi.encodeWithSignature("MantleTokenMigrator_EthNotAccepted()");
-        vm.expectRevert(err);
-        (bool success,) = address(mantleTokenMigrator).call{value: 1}("");
+        vm.expectRevert(bytes(""));
+        (success,) = address(mantleTokenMigrator).call{value: 1}("");
         assertTrue(success, "expectRevert: call did not revert");
     }
 
