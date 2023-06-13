@@ -271,10 +271,8 @@ contract MantleTokenMigrator {
     /// @dev Requirements:
     ///     - The caller must be the contract owner
     function setTreasury(address _treasury) public onlyOwner {
-        address oldTreasury = treasury;
+        emit TreasuryChanged(treasury, _treasury);
         treasury = _treasury;
-
-        emit TreasuryChanged(oldTreasury, _treasury);
     }
 
     // Token Management Functions

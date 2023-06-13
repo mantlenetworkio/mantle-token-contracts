@@ -45,9 +45,7 @@ contract L1MantleToken is
     /// @param from The address which changed the mintCapNumerator
     /// @param previousMintCapNumerator The previous mintCapNumerator
     /// @param newMintCapNumerator The new mintCapNumerator
-    event MintCapNumeratorChanged(
-        address indexed from, uint256 previousMintCapNumerator, uint256 newMintCapNumerator
-    );
+    event MintCapNumeratorChanged(address indexed from, uint256 previousMintCapNumerator, uint256 newMintCapNumerator);
 
     /* ========== ERRORS ========== */
 
@@ -123,10 +121,8 @@ contract L1MantleToken is
             revert MantleToken_MintCapNumeratorTooLarge(_mintCapNumerator, MINT_CAP_MAX_NUMERATOR);
         }
 
-        uint256 previousMintCapNumerator = mintCapNumerator;
+        emit MintCapNumeratorChanged(msg.sender, mintCapNumerator, _mintCapNumerator);
         mintCapNumerator = _mintCapNumerator;
-
-        emit MintCapNumeratorChanged(msg.sender, previousMintCapNumerator, mintCapNumerator);
     }
 
     /* ========== OVERRIDDEN FUNCTIONS ========== */
