@@ -1,0 +1,23 @@
+name: Hardhat Unit Tests
+
+on: ["push", "pull_request"]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Use Node.js 16.9.0
+        uses: actions/setup-node@v2
+        with:
+          node-version: 16.9.0
+      - name: yarn, compile, coverage
+        run: |
+          yarn
+          cp .env.example .env
+          yarn compile
+          yarn test   
+      - name: Deploy locally
+        run: |
+          npx hardhat node &
+          yarn deploy hardhat

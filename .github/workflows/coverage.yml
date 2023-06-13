@@ -1,0 +1,36 @@
+name: Forge Coverage Report
+
+on: ["push", "pull_request"]
+
+env:
+  FOUNDRY_PROFILE: ci
+
+jobs:
+  forge:
+    strategy:
+      fail-fast: true
+
+    name: Foundry project
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Foundry
+        uses: foundry-rs/foundry-toolchain@v1
+        with:
+          version: nightly
+
+      - name: Run Forge build
+        run: |
+          yarn
+          forge --version
+          forge build --sizes
+        id: build
+
+      - name: Install lcov
+        uses: hrishikesh-kadam/setup-lcov@v1.0.0
+
+      - name: Run Forge coverage
+        run: |
+          forge coverage --report lcov && lcov --extract lcov.info -o lcov.info 'src/*'
+        id: coverage
