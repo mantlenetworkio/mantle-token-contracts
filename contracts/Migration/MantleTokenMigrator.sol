@@ -100,13 +100,6 @@ contract MantleTokenMigrator {
     /// @param token The address of the token contract
     error MantleTokenMigrator_InvalidFundingToken(address token);
 
-    /// @notice Thrown when the contract receives a call with an invalid {msg}.data payload
-    /// @param data The msg.data payload
-    error MantleTokenMigrator_InvalidMessageData(bytes data);
-
-    /// @notice Thrown when the contract receives a call with a non-zero {msg.value}
-    error MantleTokenMigrator_EthNotAccepted();
-
     /// @notice Thrown when the treasury is the zero address
     error MantleTokenMigrator_InvalidTreasury(address treasury);
 
@@ -159,20 +152,6 @@ contract MantleTokenMigrator {
 
         TOKEN_CONVERSION_NUMERATOR = _tokenConversionNumerator;
         TOKEN_CONVERSION_DENOMINATOR = _tokenConversionDenominator;
-    }
-
-    /* ========== FALLBACKS ========== */
-
-    /// @notice Fallback function that reverts if non-valid calldata is sent to the contract
-    fallback() external payable {
-        if (msg.data.length != 0) revert MantleTokenMigrator_InvalidMessageData(msg.data);
-    }
-
-    /// @notice Receive function that reverts if ETH is sent to the contract with a call
-    /// @dev This function is called whenever the contract receives ETH
-    /// @dev ETH can still be forced into this contract with a selfdestruct, but it has no impact on the contract state
-    receive() external payable {
-        revert MantleTokenMigrator_EthNotAccepted();
     }
 
     /* ========== TOKEN SWAPPING ========== */
