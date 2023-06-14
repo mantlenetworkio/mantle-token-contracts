@@ -223,10 +223,10 @@ contract MantleTokenMigrator {
         if (_treasury == address(0)) {
             revert MantleTokenMigrator_InvalidTreasury(_treasury);
         }
-        address oldTreasury = treasury;
+        
+        emit TreasuryChanged(treasury, _treasury);
+        
         treasury = _treasury;
-
-        emit TreasuryChanged(oldTreasury, _treasury);
     }
 
     // Token Management Functions

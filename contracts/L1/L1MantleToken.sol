@@ -121,10 +121,8 @@ contract L1MantleToken is
             revert MantleToken_MintCapNumeratorTooLarge(_mintCapNumerator, MINT_CAP_MAX_NUMERATOR);
         }
 
-        uint256 previousMintCapNumerator = mintCapNumerator;
+        emit MintCapNumeratorChanged(msg.sender, mintCapNumerator, _mintCapNumerator);
         mintCapNumerator = _mintCapNumerator;
-
-        emit MintCapNumeratorChanged(msg.sender, previousMintCapNumerator, mintCapNumerator);
     }
 
     /* ========== OVERRIDDEN FUNCTIONS ========== */
