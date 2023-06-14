@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.15;
 
 import {ERC20} from "solmate/src/tokens/ERC20.sol";
 import {SafeTransferLib} from "solmate/src/utils/SafeTransferLib.sol";
@@ -18,16 +18,12 @@ contract MantleTokenMigrator {
     /// @dev The address of the MNT token contract
     address public immutable MNT_TOKEN_ADDRESS;
 
-    /// @dev The numerator of the token conversion rate
-    uint256 public immutable TOKEN_CONVERSION_NUMERATOR;
-
-    /// @dev The denominator of the token conversion rate
-    uint256 public immutable TOKEN_CONVERSION_DENOMINATOR;
-
     /// @dev The address of the treasury contract that receives defunded tokens
     address public treasury;
 
     /// @dev The address of the owner of the contract
+    /// @notice The owner of the contract is initially the deployer of the contract but will be transferred 
+    ///         to a multisig wallet immediately after deployment
     address public owner;
 
     /// @dev Boolean indicating if this contract is halted
@@ -39,9 +35,8 @@ contract MantleTokenMigrator {
 
     /// @dev Emitted when a user swaps BIT for MNT
     /// @param to The address of the user that swapped BIT for MNT
-    /// @param amountOfBitSwapped The amount of BIT swapped
-    /// @param amountOfMntReceived The amount of MNT received
-    event TokensMigrated(address indexed to, uint256 amountOfBitSwapped, uint256 amountOfMntReceived);
+    /// @param amountSwapped The amount of BIT swapped and MNT recieved
+    event TokensMigrated(address indexed to, uint256 amountSwapped);
 
     // Contract State Events
 
@@ -100,12 +95,8 @@ contract MantleTokenMigrator {
     /// @param token The address of the token contract
     error MantleTokenMigrator_InvalidFundingToken(address token);
 
-    /// @notice Thrown when the contract receives a call with an invalid {msg}.data payload
-    /// @param data The msg.data payload
-    error MantleTokenMigrator_InvalidMessageData(bytes data);
-
-    /// @notice Thrown when the contract receives a call with a non-zero {msg.value}
-    error MantleTokenMigrator_EthNotAccepted();
+    /// @notice Thrown when the treasury is the zero address
+    error MantleTokenMigrator_InvalidTreasury(address treasury);
 
     /* ========== MODIFIERS ========== */
 
@@ -132,19 +123,10 @@ contract MantleTokenMigrator {
     /// @param _bitTokenAddress The address of the BIT token contract
     /// @param _mntTokenAddress The address of the MNT token contract
     /// @param _treasury The address of the treasury contract that receives defunded tokens
-    /// @param _tokenConversionNumerator The numerator of the token conversion rate
-    /// @param _tokenConversionDenominator The denominator of the token conversion rate
-    constructor(
-        address _bitTokenAddress,
-        address _mntTokenAddress,
-        address _treasury,
-        uint256 _tokenConversionNumerator,
-        uint256 _tokenConversionDenominator
-    ) {
-        if (
-            _bitTokenAddress == address(0) || _mntTokenAddress == address(0) || _treasury == address(0)
-                || _tokenConversionNumerator == 0 || _tokenConversionDenominator == 0
-        ) revert MantleTokenMigrator_ImproperlyInitialized();
+    constructor(address _bitTokenAddress, address _mntTokenAddress, address _treasury) {
+        if (_bitTokenAddress == address(0) || _mntTokenAddress == address(0) || _treasury == address(0)) {
+            revert MantleTokenMigrator_ImproperlyInitialized();
+        }
 
         owner = msg.sender;
         halted = true;
@@ -153,23 +135,6 @@ contract MantleTokenMigrator {
         MNT_TOKEN_ADDRESS = _mntTokenAddress;
 
         treasury = _treasury;
-
-        TOKEN_CONVERSION_NUMERATOR = _tokenConversionNumerator;
-        TOKEN_CONVERSION_DENOMINATOR = _tokenConversionDenominator;
-    }
-
-    /* ========== FALLBACKS ========== */
-
-    /// @notice Fallback function that reverts if non-valid calldata is sent to the contract
-    fallback() external payable {
-        if (msg.data.length != 0) revert MantleTokenMigrator_InvalidMessageData(msg.data);
-    }
-
-    /// @notice Receive function that reverts if ETH is sent to the contract with a call
-    /// @dev This function is called whenever the contract receives ETH
-    /// @dev ETH can still be forced into this contract with a selfdestruct, but it has no impact on the contract state
-    receive() external payable {
-        revert MantleTokenMigrator_EthNotAccepted();
     }
 
     /* ========== TOKEN SWAPPING ========== */
@@ -196,13 +161,6 @@ contract MantleTokenMigrator {
         _migrateTokens(_amount);
     }
 
-    /// @notice Calculates the amount of MNT tokens to be received for a given amount of BIT tokens
-    /// @param _amount The amount of BIT tokens to swap
-    /// @return The amount of MNT tokens to be received
-    function tokenMigrationAmountToReceive(uint256 _amount) external view returns (uint256) {
-        return _tokenSwapCalculation(_amount);
-    }
-
     /// @notice Internal function that swaps a specified amount of the caller's BIT tokens for MNT tokens
     /// @dev emits a {TokensMigrated} event
     /// @dev Requirements:
@@ -212,22 +170,13 @@ contract MantleTokenMigrator {
     function _migrateTokens(uint256 _amount) internal {
         if (_amount == 0) revert MantleTokenMigrator_ZeroSwap();
 
-        uint256 amountToSwap = _tokenSwapCalculation(_amount);
-
         // transfer user's BIT tokens to this contract
         ERC20(BIT_TOKEN_ADDRESS).safeTransferFrom(msg.sender, address(this), _amount);
 
         // transfer MNT tokens to user, if there are insufficient tokens, in the contract this will revert
-        ERC20(MNT_TOKEN_ADDRESS).safeTransfer(msg.sender, amountToSwap);
+        ERC20(MNT_TOKEN_ADDRESS).safeTransfer(msg.sender, _amount);
 
-        emit TokensMigrated(msg.sender, _amount, amountToSwap);
-    }
-
-    /// @notice Internal function that calculates the amount of MNT tokens to be received for a given amount of BIT tokens
-    /// @param _amount The amount of BIT tokens to swap
-    /// @return The amount of MNT tokens to be received
-    function _tokenSwapCalculation(uint256 _amount) internal view returns (uint256) {
-        return (_amount * TOKEN_CONVERSION_NUMERATOR) / TOKEN_CONVERSION_DENOMINATOR;
+        emit TokensMigrated(msg.sender, _amount);
     }
 
     /* ========== ADMIN UTILS ========== */
@@ -271,10 +220,13 @@ contract MantleTokenMigrator {
     /// @dev Requirements:
     ///     - The caller must be the contract owner
     function setTreasury(address _treasury) public onlyOwner {
-        address oldTreasury = treasury;
+        if (_treasury == address(0)) {
+            revert MantleTokenMigrator_InvalidTreasury(_treasury);
+        }
+        
+        emit TreasuryChanged(treasury, _treasury);
+        
         treasury = _treasury;
-
-        emit TreasuryChanged(oldTreasury, _treasury);
     }
 
     // Token Management Functions
@@ -309,7 +261,7 @@ contract MantleTokenMigrator {
     /// @param _amount The amount of tokens to sweep
     function sweepTokens(address _tokenAddress, address _recipient, uint256 _amount) public onlyOwner {
         // we can only sweep tokens that are not BIT or MNT to an arbitrary addres
-        if ((_tokenAddress == address(BIT_TOKEN_ADDRESS)) || (_tokenAddress == address(MNT_TOKEN_ADDRESS))) {
+        if ((_tokenAddress == BIT_TOKEN_ADDRESS) || (_tokenAddress == MNT_TOKEN_ADDRESS)) {
             revert MantleTokenMigrator_SweepNotAllowed(_tokenAddress);
         }
         ERC20(_tokenAddress).safeTransfer(_recipient, _amount);
