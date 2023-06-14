@@ -35,7 +35,7 @@ contract MantleTokenMigrator {
 
     /// @dev Emitted when a user swaps BIT for MNT
     /// @param to The address of the user that swapped BIT for MNT
-    /// @param amountSwapped The amount of BIT swapped and MNT recieved
+    /// @param amountSwapped The amount of BIT swapped and MNT received
     event TokensMigrated(address indexed to, uint256 amountSwapped);
 
     // Contract State Events
