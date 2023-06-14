@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.13;
+pragma solidity 0.8.15;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/extensions/ERC20BurnableUpgradeable.sol";
@@ -95,7 +95,7 @@ contract L1MantleToken is
     ///     - Only allows minting below an inflation cap at a specified time interval
     ///         - The max mint amount is computed as follows:
     ///             - maxMintAmount = (mintCapNumerator * totalSupply()) / MINT_CAP_DENOMINATOR
-    ///              - The specified time interval at which mints can occur is initially set to 1 year
+    ///              - The specified time interval at which mints can occur is 1 year (365 days)
     ///     - the parameter {amount} must be less than or equal to {maxMintAmount} as computed above
     ///     - the {blockTimestamp} of the block in which this function is called must be greater than or equal to {nextMint}
     /// @param _recipient The address to mint tokens to
@@ -112,7 +112,7 @@ contract L1MantleToken is
     }
 
     /// @notice Allows the owner to set the mintCapNumerator
-    /// @dev emits a {MintCapNumeratorSet} event
+    /// @dev emits a {MintCapNumeratorChanged} event
     /// @dev Requirements:
     ///     - The caller must be the contract owner
     ///     - parameter {_mintCapNumerator} must be less than or equal to {MINT_CAP_MAX_NUMERATOR}
