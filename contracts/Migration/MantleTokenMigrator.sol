@@ -22,6 +22,8 @@ contract MantleTokenMigrator {
     address public treasury;
 
     /// @dev The address of the owner of the contract
+    /// @notice The owner of the contract is initially the deployer of the contract but will be transferred 
+    ///         to a multisig wallet immediately after deployment
     address public owner;
 
     /// @dev Boolean indicating if this contract is halted
