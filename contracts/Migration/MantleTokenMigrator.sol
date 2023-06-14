@@ -194,6 +194,7 @@ contract MantleTokenMigrator {
     ///     - The caller must have approved this contract to spend at least {_amount} of their BIT tokens
     ///     - The caller must have a balance of at least {_amount} of BIT tokens
     ///     - The contract must not be halted
+    ///     - {_amount} must be non-zero
     /// @param _amount The amount of BIT tokens to swap
     function migrateBIT(uint256 _amount) external onlyWhenNotHalted {
         _migrateTokens(_amount);
@@ -211,6 +212,7 @@ contract MantleTokenMigrator {
     /// @dev Requirements:
     ///     - The caller must have approved this contract to spend at least {_amount} of their BIT tokens
     ///     - The caller must have a balance of at least {_amount} of BIT tokens
+    ///     - {_amount} must be non-zero
     /// @param _amount The amount of BIT tokens to swap
     function _migrateTokens(uint256 _amount) internal {
         if (_amount == 0) revert MantleTokenMigrator_ZeroSwap();
