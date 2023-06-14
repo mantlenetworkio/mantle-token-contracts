@@ -45,9 +45,7 @@ contract L1MantleToken is
     /// @param from The address which changed the mintCapNumerator
     /// @param previousMintCapNumerator The previous mintCapNumerator
     /// @param newMintCapNumerator The new mintCapNumerator
-    event MintCapNumeratorChanged(
-        address indexed from, uint256 previousMintCapNumerator, uint256 newMintCapNumerator
-    );
+    event MintCapNumeratorChanged(address indexed from, uint256 previousMintCapNumerator, uint256 newMintCapNumerator);
 
     /* ========== ERRORS ========== */
 

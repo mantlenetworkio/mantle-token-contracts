@@ -23,9 +23,7 @@ async function main(): Promise<void> {
   const mantleTokenMigrator = await MantleTokenMigrator.deploy(
     bitTokenAddress,
     l1MantleToken.address,
-    goerliMigrationTreasury,
-    314,
-    100
+    goerliMigrationTreasury
   );
   await mantleTokenMigrator.transferOwnership(MantleTokenMigratorOwner);
 
