@@ -116,6 +116,7 @@ contract L1MantleToken is
     /// @dev Requirements:
     ///     - The caller must be the contract owner
     ///     - {_mintCapNumerator} must be less than or equal to {MINT_CAP_MAX_NUMERATOR}
+    /// @param _mintCapNumerator The new numerator of the mint cap
     function setMintCapNumerator(uint256 _mintCapNumerator) public onlyOwner {
         if (_mintCapNumerator > MINT_CAP_MAX_NUMERATOR) {
             revert MantleToken_MintCapNumeratorTooLarge(_mintCapNumerator, MINT_CAP_MAX_NUMERATOR);

@@ -22,7 +22,7 @@ contract MantleTokenMigrator {
     address public treasury;
 
     /// @dev The address of the owner of the contract
-    /// @notice The owner of the contract is initially the deployer of the contract but will be transferred 
+    /// @notice The owner of the contract is initially the deployer of the contract but will be transferred
     ///         to a multisig wallet immediately after deployment
     address public owner;
 
@@ -225,9 +225,9 @@ contract MantleTokenMigrator {
         if (_treasury == address(0)) {
             revert MantleTokenMigrator_InvalidTreasury(_treasury);
         }
-        
+
         emit TreasuryChanged(treasury, _treasury);
-        
+
         treasury = _treasury;
     }
 
