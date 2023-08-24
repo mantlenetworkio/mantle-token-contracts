@@ -290,6 +290,8 @@ contract MantleTokenMigratorV2 {
     /// @param _blacklister The address to give the Blacklister role to
     function giveBlacklisterRole(address _blacklister) public onlyOwner {
         blacklisters[_blacklister] = true;
+
+        emit BlacklisterRoleAssigned(_blacklister);
     }
 
     /// @notice Revokes the Blacklister role from an address
@@ -299,6 +301,8 @@ contract MantleTokenMigratorV2 {
     /// @param _blacklister The address to revoke the Blacklist role from
     function revokeBlacklisterRole(address _blacklister) public onlyOwner {
         blacklisters[_blacklister] = false;
+
+        emit BlacklisterRoleRevoked(_blacklister);
     }
 
     // Contract State Functions
