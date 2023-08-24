@@ -95,13 +95,13 @@ contract MantleTokenMigratorV2 {
     /// @param approver The address that had the Approver role revoked
     event ApproverRoleRevoked(address indexed approver);
 
-    /// @dev Emitted when the Blacklist role is given to an address
-    /// @param blacklister The address that was given the Blacklist role
-    event BlacklistRoleAssigned(address indexed blacklister);
+    /// @dev Emitted when the Blacklister role is given to an address
+    /// @param blacklister The address that was given the Blacklister role
+    event BlacklisterRoleAssigned(address indexed blacklister);
 
-    /// @dev Emitted when the Blacklist role is revoked from an address
-    /// @param blacklister The address that had the Blacklist role revoked
-    event BlacklistRoleRevoked(address indexed blacklister);
+    /// @dev Emitted when the Blacklister role is revoked from an address
+    /// @param blacklister The address that had the Blacklister role revoked
+    event BlacklisterRoleRevoked(address indexed blacklister);
 
     /// @dev Emitted when an address is blacklisted from migration
     /// @param blacklister The address of the caller that blacklisted the address
@@ -162,7 +162,7 @@ contract MantleTokenMigratorV2 {
     /// @notice Modifier that checks that the caller has the Approver role
     /// @dev Throws {MantleTokenMigrator_OnlyApprover} if the caller does not have the Approver role
     modifier onlyApprover() {
-        if (!approvers[msg.sender]) revert MantleTokenMigrator_OnlyOwner(msg.sender);
+        if (!approvers[msg.sender]) revert MantleTokenMigrator_OnlyApprover(msg.sender);
         _;
     }
 
@@ -221,9 +221,9 @@ contract MantleTokenMigratorV2 {
     ///     - The address being approved for token migration must not be blacklisted
     function approveMigrationRequest(address _addressToMigrate, uint256 _amount)
         external
+        onlyWhenNotHalted
         onlyApprover
         onlyWhenNotBlacklisted(_addressToMigrate)
-        onlyWhenNotHalted
     {
         emit TokenMigrationApproved(msg.sender, _addressToMigrate, _amount);
         _migrateTokens(_addressToMigrate, _amount);
@@ -283,21 +283,21 @@ contract MantleTokenMigratorV2 {
         approvers[_approver] = false;
     }
 
-    /// @notice Gives the Blacklist role to an address
-    /// @dev emits an {BlacklistRoleAssigned} event
+    /// @notice Gives the Blacklister role to an address
+    /// @dev emits an {BlacklisterRoleAssigned} event
     /// @dev Requirements:
     ///     - The caller must be the contract owner
-    /// @param _blacklister The address to give the Blacklist role to
-    function giveBlacklistRole(address _blacklister) public onlyOwner {
+    /// @param _blacklister The address to give the Blacklister role to
+    function giveBlacklisterRole(address _blacklister) public onlyOwner {
         blacklisters[_blacklister] = true;
     }
 
-    /// @notice Revokes the Blacklist role from an address
-    /// @dev emits an {BlacklistRoleRevoked} event
+    /// @notice Revokes the Blacklister role from an address
+    /// @dev emits an {BlacklisterRoleRevoked} event
     /// @dev Requirements:
     ///     - The caller must be the contract owner
     /// @param _blacklister The address to revoke the Blacklist role from
-    function revokeBlacklistRole(address _blacklister) public onlyOwner {
+    function revokeBlacklisterRole(address _blacklister) public onlyOwner {
         blacklisters[_blacklister] = false;
     }
 
