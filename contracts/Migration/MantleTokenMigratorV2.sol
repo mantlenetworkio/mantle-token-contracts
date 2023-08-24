@@ -33,7 +33,7 @@ contract MantleTokenMigratorV2 {
     mapping(address => bool) public blacklisters;
 
     /// @dev A mapping of addresses blacklisted from migration
-    mapping(address => address) public blacklistedAddresses;
+    mapping(address => bool) public blacklistedAddresses;
 
     /// @dev Boolean indicating if this contract is halted
     bool public halted;
@@ -184,7 +184,7 @@ contract MantleTokenMigratorV2 {
     /// @dev Throws {MantleTokenMigrator_AddressBlacklisted} if the address is blacklisted
     /// @param _address The address to check
     modifier onlyWhenNotBlacklisted(address _address) {
-        if (blacklistedAddresses[_address] != address(0)) revert MantleTokenMigrator_AddressBlacklisted(_address);
+        if (blacklistedAddresses[_address]) revert MantleTokenMigrator_AddressBlacklisted(_address);
         _;
     }
 
@@ -309,7 +309,7 @@ contract MantleTokenMigratorV2 {
     ///     - The caller must have the Blacklister role
     /// @param _address The address to blacklist
     function blacklistAddress(address _address) public onlyBlacklister {
-        blacklistedAddresses[_address] = _address;
+        blacklistedAddresses[_address] = true;
 
         emit AddressBlacklisted(msg.sender, _address);
     }
@@ -320,7 +320,7 @@ contract MantleTokenMigratorV2 {
     ///     - The caller must have the Blacklister role
     /// @param _address The address to remove from the blacklist
     function removeAddressFromBlacklist(address _address) public onlyBlacklister {
-        blacklistedAddresses[_address] = address(0);
+        blacklistedAddresses[_address] = false;
 
         emit AddressRemovedFromBlacklist(msg.sender, _address);
     }
