@@ -272,6 +272,8 @@ contract MantleTokenMigratorV2 {
     /// @param _approver The address to give the Approver role to
     function giveApproverRole(address _approver) public onlyOwner {
         approvers[_approver] = true;
+
+        emit ApproverRoleAssigned(_approver);
     }
 
     /// @notice Revokes the Approver role from an address
@@ -281,6 +283,8 @@ contract MantleTokenMigratorV2 {
     /// @param _approver The address to revoke the Approver role from
     function revokeApproverRole(address _approver) public onlyOwner {
         approvers[_approver] = false;
+
+        emit ApproverRoleRevoked(_approver);
     }
 
     /// @notice Gives the Blacklister role to an address
