@@ -390,7 +390,7 @@ contract MantleTokenMigratorV2 {
         emit ContractDefunded(treasury, _tokenAddress, _amount);
     }
 
-    /// @notice Sweeps a specified amount of tokens to an arbitrary address
+    /// @notice Sweeps a specified amount of tokens to an arbitrary address in case of accidental token transfers
     /// @dev emits a {TokensSwept} event
     /// @dev Requirements:
     ///     - The caller must be the contract owner
