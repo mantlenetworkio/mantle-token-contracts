@@ -106,7 +106,9 @@ contract MantleTokenMigratorV2 {
     /// @dev Emitted when an address is blacklisted from migration
     /// @param blacklister The address of the caller that blacklisted the address
     /// @param blacklistedAddress The address that was blacklisted
-    event AddressBlacklisted(address indexed blacklister, address indexed blacklistedAddress);
+    event BlacklistModified(
+        address indexed blacklister, address indexed blacklistedAddress, bool indexed blacklistStatus
+    );
 
     /// @dev Emitted when an address is removed from the blacklist
     /// @param blacklister The address of the caller that removed the address from the blacklist
@@ -128,7 +130,7 @@ contract MantleTokenMigratorV2 {
     error MantleTokenMigrator_OnlyBlacklister(address caller);
 
     /// @notice Thrown when the address being approved for token migration is blacklisted
-    error MantleTokenMigrator_AddressBlacklisted(address tokenMigrator);
+    error MantleTokenMigrator_BlacklistModified(address tokenMigrator);
 
     /// @notice Thrown when the contract is halted and the function being called uses the {onlyWhenNotHalted} modifier
     error MantleTokenMigrator_OnlyWhenNotHalted();
@@ -181,10 +183,10 @@ contract MantleTokenMigratorV2 {
     }
 
     /// @notice Modifier that checks that the address being approved for token migration is not blacklisted
-    /// @dev Throws {MantleTokenMigrator_AddressBlacklisted} if the address is blacklisted
+    /// @dev Throws {MantleTokenMigrator_BlacklistModified} if the address is blacklisted
     /// @param _address The address to check
     modifier onlyWhenNotBlacklisted(address _address) {
-        if (blacklistedAddresses[_address]) revert MantleTokenMigrator_AddressBlacklisted(_address);
+        if (blacklistedAddresses[_address]) revert MantleTokenMigrator_BlacklistModified(_address);
         _;
     }
 
@@ -312,25 +314,25 @@ contract MantleTokenMigratorV2 {
     // Contract State Functions
 
     /// @notice Blacklists an address from token migration
-    /// @dev emits an {AddressBlacklisted} event
+    /// @dev emits an {BlacklistModified} event
     /// @dev Requirements:
     ///     - The caller must have the Blacklister role
     /// @param _address The address to blacklist
     function blacklistAddress(address _address) public onlyBlacklister {
         blacklistedAddresses[_address] = true;
 
-        emit AddressBlacklisted(msg.sender, _address);
+        emit BlacklistModified(msg.sender, _address, true);
     }
 
     /// @notice Removes an address from the blacklist
-    /// @dev emits an {AddressRemovedFromBlacklist} event
+    /// @dev emits an {BlacklistModified} event
     /// @dev Requirements:
     ///     - The caller must have the Blacklister role
     /// @param _address The address to remove from the blacklist
     function removeAddressFromBlacklist(address _address) public onlyBlacklister {
         blacklistedAddresses[_address] = false;
 
-        emit AddressRemovedFromBlacklist(msg.sender, _address);
+        emit BlacklistModified(msg.sender, _address, false);
     }
 
     /// @notice Halts the contract, preventing token migrations
