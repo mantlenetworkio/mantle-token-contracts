@@ -3,7 +3,7 @@ pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract BitTokenERC20 is ERC20 {
+contract L1MantleToken is ERC20 {
 
     mapping(address => uint256) public mintRecord;
     uint256 public mintGap;
