@@ -7,6 +7,9 @@ import { SetConfigParam } from "@layerzerolabs/lz-evm-protocol-v2/contracts/inte
 import { UlnConfig } from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
 import { ExecutorConfig } from "@layerzerolabs/lz-evm-messagelib-v2/contracts/SendLibBase.sol";
 import { IOAppCore } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/interfaces/IOAppCore.sol";
+import { IOAppOptionsType3 } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/interfaces/IOAppOptionsType3.sol";
+import { EnforcedOptionParam } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OAppOptionsType3.sol";
+import { OptionsBuilder } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
 import { stdToml } from "forge-std/StdToml.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
 
@@ -25,6 +28,7 @@ struct Config {
 /// @notice Defines and applies ULN (DVN) + Executor configs for cross‑chain messages sent from Chain A to Chain B via LayerZero Endpoint V2.
 contract ConfigOFT is Script {
     using stdToml for string;
+    using OptionsBuilder for bytes;
 
     uint32 constant EXECUTOR_CONFIG_TYPE = 1;
     uint32 constant ULN_CONFIG_TYPE = 2;
@@ -46,6 +50,12 @@ contract ConfigOFT is Script {
     function setReceiveConfig(string memory from, string memory to) external {
         _sanityCheck(false, from, to);
         _setConfig(_isMainnet(), false, from, to);
+    }
+
+    /// @dev use: FOUNDRY_PROFILE=sepolia forge script scripts/foundry/ConfigOFT.s.sol --sig "setEnforcedOption(string)" eth
+    function setEnforcedOption(string memory from) external {
+        _sanityCheck(true, from, "");
+        _setEnforcedOption(_isMainnet(), from);
     }
 
 
@@ -99,6 +109,49 @@ contract ConfigOFT is Script {
         vm.stopBroadcast();
 
         _getConfig(endpoint, oapp, lib, eid);
+    }
+
+    function _setEnforcedOption(bool mainnet, string memory from) internal {
+        uint256 callerPrivateKey = vm.envUint("PRIVATE_KEY");
+        address callAddress = vm.addr(callerPrivateKey);
+        console.log("callAddress", callAddress);
+        console.log("setting enforced options for", from);
+
+        string memory key = string.concat(".", mainnet ? "mainnet" : "testnet", ".", from, ".enforced_options");
+        address oapp = toml.readAddress(string.concat(key, ".oapp"));
+        console.log("oapp", oapp);
+        uint256[] memory dstEids = toml.readUintArray(string.concat(key, ".dst_eids"));
+        for (uint256 i; i < dstEids.length; i++) {
+            console.log("dstEid", dstEids[i]);
+        }
+        uint256[] memory gasOptions = toml.readUintArray(string.concat(key, ".gas_options"));
+        for (uint256 i; i < gasOptions.length; i++) {
+            console.log("gasOption", gasOptions[i]);
+        }
+        require(dstEids.length == gasOptions.length, "dstEids and gasOptions must have the same length");
+
+        // Message type (should match your contract's constant)
+        uint16 SEND = 1;  // Message type for sendString function
+
+        // Create enforced options array
+        EnforcedOptionParam[] memory enforcedOptions = new EnforcedOptionParam[](dstEids.length);
+        for (uint256 i; i < dstEids.length; i++) {
+            bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(uint128(gasOptions[i]), 0);
+            enforcedOptions[i] = EnforcedOptionParam({
+                eid: uint32(dstEids[i]),
+                msgType: SEND,
+                options: options
+            });
+        }
+
+        vm.startBroadcast(callerPrivateKey);
+
+        // Set enforced options on the OApp
+        IOAppOptionsType3(oapp).setEnforcedOptions(enforcedOptions);
+
+        vm.stopBroadcast();
+
+        console.log("Enforced options set successfully!");
     }
 
     function _getConfig(address _endpoint,address _oapp, address _lib, uint32 _remoteEid) internal view {

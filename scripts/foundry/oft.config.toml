@@ -22,6 +22,10 @@ f_req_dvn_count = 2
 # sorted dvns
 g_dvns = ["0x0ee552262f7b562efced6dd4a7e2878ab897d405", "0x1337afd780b599b0af07fb0043226f02bc7fe92f"]
 
+[testnet.eth.enforced_options]
+oapp = "0x0A47fcA335c9879014D3150b2478aFb53c8eE5aF"
+dst_eids = [40102]
+gas_options = [65000]
 
 [testnet.bsc.eth.send]
 a_endpoint = "0x6EDCE65403992e310A62460808c4b910D972f10f"
@@ -43,3 +47,8 @@ f_req_dvn_count = 2
 # sorted dvns
 #g_dvns = ["0x8eebf8b423b73bfca51a1db4b7354aa0bfca9193"]
 g_dvns = ["0x6943872cfc48f6b18f8b81d57816733d4545eca3", "0x8eebf8b423b73bfca51a1db4b7354aa0bfca9193"]
+
+[testnet.bsc.enforced_options]
+oapp = "0xCdb3D2dC427A5BC9aF54a9c2Ed2F5950619184BF"
+dst_eids = [40161]
+gas_options = [65000]

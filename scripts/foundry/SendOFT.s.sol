@@ -41,13 +41,13 @@ contract SendOFT is Script {
         IOFT oft = IOFT(oftAddress);
 
         // Build send parameters
-        bytes memory extraOptions = OptionsBuilder.newOptions().addExecutorLzReceiveOption(65000, 0);
+        // bytes memory extraOptions = OptionsBuilder.newOptions().addExecutorLzReceiveOption(65000, 0);
         SendParam memory sendParam = SendParam({
             dstEid: dstEid,
             to: addressToBytes32(toAddress),
             amountLD: tokensToSend,
             minAmountLD: tokensToSend * 95 / 100, // 5% slippage tolerance
-            extraOptions: extraOptions,
+            extraOptions: "",
             composeMsg: "",
             oftCmd: ""
         });
