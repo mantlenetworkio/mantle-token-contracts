@@ -692,6 +692,30 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
+"@layerzerolabs/oapp-evm-upgradeable@^0.1.2":
+  version "0.1.2"
+  resolved "https://registry.yarnpkg.com/@layerzerolabs/oapp-evm-upgradeable/-/oapp-evm-upgradeable-0.1.2.tgz#381f15356323055dae208d6b0549165a9b4ea5d7"
+  integrity sha512-w/TeKIcug6kxfZGuasqSFI4ip9+izSUbTha6ZOyGZeNQqIo88A198ykU36e27dk7JLGjAdwhQH9bOzdzfSPLWQ==
+  dependencies:
+    ethers "^5.7.2"
+
+"@layerzerolabs/oapp-evm@^0.3.2":
+  version "0.3.2"
+  resolved "https://registry.yarnpkg.com/@layerzerolabs/oapp-evm/-/oapp-evm-0.3.2.tgz#ff2b84253af290891efe72e3a695a3365b6b7dd4"
+  integrity sha512-QqazLEl9KEPsipU/3m5eFDhyse+sG4bO2FWUEf/Kuee4JW6P3iIBI9wg0QfalUqLj0HL0ChFHL3yRTZVqzxrww==
+  dependencies:
+    ethers "^5.7.2"
+
+"@layerzerolabs/oft-evm-upgradeable@^3.1.0":
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/@layerzerolabs/oft-evm-upgradeable/-/oft-evm-upgradeable-3.1.0.tgz#bde8ec30eda091fad0fb9c3358e7c8b51d503cc9"
+  integrity sha512-GY7MsoodohRkuxf1cm6LEdokZhnUdtgsiJcmvUyePlt3WZE/TL5DlZv5dQdQZRfQRlsd0plKoTYhJeVRNFrGzQ==
+
+"@layerzerolabs/oft-evm@^3.1.4":
+  version "3.1.4"
+  resolved "https://registry.yarnpkg.com/@layerzerolabs/oft-evm/-/oft-evm-3.1.4.tgz#de20e47cf69655405d7c8cc67ff6afee97cf4484"
+  integrity sha512-jxuEXtzAv2x/ZErBtg6OI6rxq4KyMamPgy8+r3/AQ5uD4Ih2Sd51mBIebpzueJKqMk7MNdOauLfYRRK6tOFWXQ==
+
 "@metamask/eth-sig-util@^4.0.0":
   version "4.0.1"
   resolved "https://registry.npmjs.org/@metamask/eth-sig-util/-/eth-sig-util-4.0.1.tgz"
@@ -988,15 +1012,25 @@
     find-up "^4.1.0"
     fs-extra "^8.1.0"
 
-"@openzeppelin/contracts-upgradeable@^4.8.3":
+"@openzeppelin/contracts-upgradeable-v4@npm:@openzeppelin/contracts-upgradeable@4.8.3":
   version "4.8.3"
-  resolved "https://registry.npmjs.org/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.8.3.tgz"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-4.8.3.tgz#6b076a7b751811b90fe3a172a7faeaa603e13a3f"
   integrity sha512-SXDRl7HKpl2WDoJpn7CK/M9U4Z8gNXDHHChAKh0Iz+Wew3wu6CmFYBeie3je8V0GSXZAIYYwUktSrnW/kwVPtg==
 
-"@openzeppelin/contracts@^4.8.3":
+"@openzeppelin/contracts-upgradeable@^5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts-upgradeable/-/contracts-upgradeable-5.3.0.tgz#79dba09ab0b4bb49f21544ea738b9de016b0ceea"
+  integrity sha512-yVzSSyTMWO6rapGI5tuqkcLpcGGXA0UA1vScyV5EhE5yw8By3Ewex9rDUw8lfVw0iTkvR/egjfcW5vpk03lqZg==
+
+"@openzeppelin/contracts-v4@npm:@openzeppelin/contracts@4.8.3":
   version "4.8.3"
-  resolved "https://registry.npmjs.org/@openzeppelin/contracts/-/contracts-4.8.3.tgz"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-4.8.3.tgz#cbef3146bfc570849405f59cba18235da95a252a"
   integrity sha512-bQHV8R9Me8IaJoJ2vPG4rXcL7seB7YVuskr4f+f5RyOStSZetwzkWtoqDMl5erkBJy0lDRUnIR2WIkPiC0GJlg==
+
+"@openzeppelin/contracts@^5.3.0":
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-5.3.0.tgz#0a90ce16f5c855e3c8239691f1722cd4999ae741"
+  integrity sha512-zj/KGoW7zxWUE8qOI++rUM18v+VeLTTzKs/DJFkSzHpQFPD/jKKF0TrMxBfGLl3kpdELCNccvB3zmofSzm4nlA==
 
 "@openzeppelin/hardhat-upgrades@^1.25.1":
   version "1.25.1"
