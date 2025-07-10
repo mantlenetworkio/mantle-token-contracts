@@ -23,7 +23,6 @@ struct Config {
     address[] dvns;
 }
 
-
 /// @title LayerZero Send Configuration Script (A → B)
 /// @notice Defines and applies ULN (DVN) + Executor configs for cross‑chain messages sent from Chain A to Chain B via LayerZero Endpoint V2.
 contract ConfigOFT is Script {
@@ -58,20 +57,20 @@ contract ConfigOFT is Script {
         _setEnforcedOption(_isMainnet(), from);
     }
 
-
     function _setConfig(bool mainnet, bool send, string memory from, string memory to) internal {
         uint256 callerPrivateKey = vm.envUint("PRIVATE_KEY");
         address callAddress = vm.addr(callerPrivateKey);
         console.log("callAddress", callAddress);
         console.log("configuring from", from, "to", to);
 
-        string memory key = string.concat(".", mainnet ? "mainnet" : "testnet", ".", from, ".", to, ".", send ? "send" : "receive");
+        string memory key =
+            string.concat(".", mainnet ? "mainnet" : "testnet", ".", from, ".", to, ".", send ? "send" : "receive");
         Config memory config = abi.decode(toml.parseRaw(key), (Config));
 
         address endpoint = config.endpoint;
-        address oapp     = config.oapp;
-        uint32 eid       = config.remoteEid;
-        address lib      = config.lib;
+        address oapp = config.oapp;
+        uint32 eid = config.remoteEid;
+        address lib = config.lib;
 
         console.log("endpoint", endpoint);
         console.log("oapp", oapp);
@@ -84,15 +83,15 @@ contract ConfigOFT is Script {
         /// @dev uint8 internal constant NIL_DVN_COUNT = type(uint8).max;
         /// @dev uint64 internal constant NIL_CONFIRMATIONS = type(uint64).max;
         UlnConfig memory uln = UlnConfig({
-            confirmations:        config.confirmations,                                     // minimum block confirmations required on A before sending to B
-            requiredDVNCount:     config.reqDvnCount,                                       // number of DVNs required
-            optionalDVNCount:     type(uint8).max,                                          // optional DVNs count, uint8
-            optionalDVNThreshold: 0,                                                        // optional DVN threshold
-            requiredDVNs:        config.dvns,                                               // sorted list of required DVN addresses
-            optionalDVNs:        new address[](0)                                           // sorted list of optional DVNs
-        });
+            confirmations: config.confirmations, // minimum block confirmations required on A before sending to B
+            requiredDVNCount: config.reqDvnCount, // number of DVNs required
+            optionalDVNCount: type(uint8).max, // optional DVNs count, uint8
+            optionalDVNThreshold: 0, // optional DVN threshold
+            requiredDVNs: config.dvns, // sorted list of required DVN addresses
+            optionalDVNs: new address[](0) // sorted list of optional DVNs
+         });
 
-        bytes memory encodedUln  = abi.encode(uln);
+        bytes memory encodedUln = abi.encode(uln);
 
         SetConfigParam[] memory params = new SetConfigParam[](1);
         params[0] = SetConfigParam(eid, ULN_CONFIG_TYPE, encodedUln);
@@ -101,7 +100,8 @@ contract ConfigOFT is Script {
         ILayerZeroEndpointV2(endpoint).setConfig(oapp, lib, params); // Set config for messages sent from A to B
         if (send && toml.readBool(".set_peer")) {
             console.log("setting peer for", from, "to", to);
-            string memory peerKey = string.concat(".", mainnet ? "mainnet" : "testnet", ".", from, ".", to, ".", "receive.b_oapp");
+            string memory peerKey =
+                string.concat(".", mainnet ? "mainnet" : "testnet", ".", from, ".", to, ".", "receive.b_oapp");
             address peer = abi.decode(toml.parseRaw(peerKey), (address));
             console.log("peer", peer);
             IOAppCore(oapp).setPeer(eid, bytes32(uint256(uint160(peer))));
@@ -131,17 +131,13 @@ contract ConfigOFT is Script {
         require(dstEids.length == gasOptions.length, "dstEids and gasOptions must have the same length");
 
         // Message type (should match your contract's constant)
-        uint16 SEND = 1;  // Message type for sendString function
+        uint16 SEND = 1; // Message type for sendString function
 
         // Create enforced options array
         EnforcedOptionParam[] memory enforcedOptions = new EnforcedOptionParam[](dstEids.length);
         for (uint256 i; i < dstEids.length; i++) {
             bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(uint128(gasOptions[i]), 0);
-            enforcedOptions[i] = EnforcedOptionParam({
-                eid: uint32(dstEids[i]),
-                msgType: SEND,
-                options: options
-            });
+            enforcedOptions[i] = EnforcedOptionParam({ eid: uint32(dstEids[i]), msgType: SEND, options: options });
         }
 
         vm.startBroadcast(callerPrivateKey);
@@ -154,16 +150,16 @@ contract ConfigOFT is Script {
         console.log("Enforced options set successfully!");
     }
 
-    function _getConfig(address _endpoint,address _oapp, address _lib, uint32 _remoteEid) internal view {
+    function _getConfig(address _endpoint, address _oapp, address _lib, uint32 _remoteEid) internal view {
         ILayerZeroEndpointV2 endpoint = ILayerZeroEndpointV2(_endpoint);
         bytes memory receiveUlnConfigBytes = endpoint.getConfig(_oapp, _lib, _remoteEid, ULN_CONFIG_TYPE);
 
         UlnConfig memory config = abi.decode(receiveUlnConfigBytes, (UlnConfig));
         console.log("get config:");
-        console.log("confirmations: %d",config.confirmations);
-        console.log("requiredDVNCount: %d",config.requiredDVNCount);
-        console.log("optionalDVNCount: %d",config.optionalDVNCount);
-        console.log("optionalDVNThreshold: %d",config.optionalDVNThreshold);
+        console.log("confirmations: %d", config.confirmations);
+        console.log("requiredDVNCount: %d", config.requiredDVNCount);
+        console.log("optionalDVNCount: %d", config.optionalDVNCount);
+        console.log("optionalDVNThreshold: %d", config.optionalDVNThreshold);
         console.log("requiredDVNs:");
         for (uint256 i; i < config.requiredDVNs.length; i++) {
             console.logAddress(config.requiredDVNs[i]);
@@ -178,7 +174,7 @@ contract ConfigOFT is Script {
         return block.chainid == 1 || block.chainid == 56 || block.chainid == 999;
     }
 
-    function _sanityCheck(bool setSend,string memory from, string memory to) internal view {
+    function _sanityCheck(bool setSend, string memory from, string memory to) internal view {
         if (keccak256(bytes(from)) == keccak256(bytes(to))) {
             revert("from and to cannot be the same");
         }

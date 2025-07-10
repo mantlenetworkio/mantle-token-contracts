@@ -1,4 +1,4 @@
-set_peer = false
+set_peer = true
 
 [testnet.eth.bsc.send]
 a_endpoint = "0x6EDCE65403992e310A62460808c4b910D972f10f"
@@ -7,7 +7,7 @@ c_remote_eid = 40102
 d_lib = "0xcc1ae8Cf5D3904Cef3360A9532B477529b177cCE"
 e_confirmations = 15
 f_req_dvn_count = 2
-# sorted dvns
+# sorted dvns, mantle 0x6943872cfc48f6b18f8b81d57816733d4545eca3, layerzero 0x8eebf8b423b73bfca51a1db4b7354aa0bfca9193
 #g_dvns = ["0x8eebf8b423b73bfca51a1db4b7354aa0bfca9193"]
 g_dvns = ["0x6943872cfc48f6b18f8b81d57816733d4545eca3", "0x8eebf8b423b73bfca51a1db4b7354aa0bfca9193"]
 
@@ -24,8 +24,8 @@ g_dvns = ["0x0ee552262f7b562efced6dd4a7e2878ab897d405", "0x1337afd780b599b0af07f
 
 [testnet.eth.enforced_options]
 oapp = "0x0A47fcA335c9879014D3150b2478aFb53c8eE5aF"
-dst_eids = [40102]
-gas_options = [65000]
+dst_eids = [40102, 40362]
+gas_options = [80000, 80000]
 
 [testnet.bsc.eth.send]
 a_endpoint = "0x6EDCE65403992e310A62460808c4b910D972f10f"
@@ -34,7 +34,7 @@ c_remote_eid = 40161
 d_lib = "0x55f16c442907e86D764AFdc2a07C2de3BdAc8BB7"
 e_confirmations = 15
 f_req_dvn_count = 2
-# sorted dvns
+# sorted dvns， mantle 0x1337afd780b599b0af07fb0043226f02bc7fe92f, layerzero 0x0ee552262f7b562efced6dd4a7e2878ab897d405
 g_dvns = ["0x0ee552262f7b562efced6dd4a7e2878ab897d405", "0x1337afd780b599b0af07fb0043226f02bc7fe92f"]
 
 [testnet.bsc.eth.receive]
@@ -51,4 +51,49 @@ g_dvns = ["0x6943872cfc48f6b18f8b81d57816733d4545eca3", "0x8eebf8b423b73bfca51a1
 [testnet.bsc.enforced_options]
 oapp = "0xCdb3D2dC427A5BC9aF54a9c2Ed2F5950619184BF"
 dst_eids = [40161]
-gas_options = [65000]
+gas_options = [80000]
+
+[testnet.eth.hyper.send]
+a_endpoint = "0x6EDCE65403992e310A62460808c4b910D972f10f"
+b_oapp = "0x0A47fcA335c9879014D3150b2478aFb53c8eE5aF"
+c_remote_eid = 40362
+d_lib = "0xcc1ae8Cf5D3904Cef3360A9532B477529b177cCE"
+e_confirmations = 15
+f_req_dvn_count = 1
+# sorted dvns
+g_dvns = ["0x6943872cfc48f6b18f8b81d57816733d4545eca3"]
+
+[testnet.eth.hyper.receive]
+a_endpoint = "0xf9e1815F151024bDE4B7C10BAC10e8Ba9F6b53E1"
+b_oapp = "0xb51541df05DE07be38dcfc4a80c05389A54502BB"
+c_remote_eid = 40161
+d_lib = "0x012f6eaE2A0Bf5916f48b5F37C62Bcfb7C1ffdA1"
+e_confirmations = 15
+f_req_dvn_count = 1
+# sorted dvns
+g_dvns = ["0x003bd8adc7ba8a7353b950541904b61011e38dae"]
+
+[testnet.hyper.eth.send]
+a_endpoint = "0xf9e1815F151024bDE4B7C10BAC10e8Ba9F6b53E1"
+b_oapp = "0xb51541df05DE07be38dcfc4a80c05389A54502BB"
+c_remote_eid = 40161
+d_lib = "0x43E505ba192aaC7BABdC1A796c87844171011684"
+e_confirmations = 15
+f_req_dvn_count = 1
+# sorted dvns
+g_dvns = ["0x003bd8adc7ba8a7353b950541904b61011e38dae"]
+
+[testnet.hyper.eth.receive]
+a_endpoint = "0x6EDCE65403992e310A62460808c4b910D972f10f"
+b_oapp = "0x0A47fcA335c9879014D3150b2478aFb53c8eE5aF"
+c_remote_eid = 40362
+d_lib = "0xdAf00F5eE2158dD58E0d3857851c432E34A3A851"
+e_confirmations = 15
+f_req_dvn_count = 1
+# sorted dvns
+g_dvns = ["0x6943872cfc48f6b18f8b81d57816733d4545eca3"]
+
+[testnet.hyper.enforced_options]
+oapp = "0xb51541df05DE07be38dcfc4a80c05389A54502BB"
+dst_eids = [40161]
+gas_options = [80000]

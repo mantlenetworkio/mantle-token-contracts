@@ -59,7 +59,7 @@ contract SendOFT is Script {
         console.log("Fee amount:", fee.nativeFee);
 
         // Send tokens
-        oft.send{value: fee.nativeFee}(sendParam, fee, msg.sender);
+        oft.send{ value: fee.nativeFee }(sendParam, fee, msg.sender);
 
         vm.stopBroadcast();
     }

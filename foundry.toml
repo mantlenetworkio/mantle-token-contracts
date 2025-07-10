@@ -5,6 +5,10 @@ libs = ['lib']
 test = 'test/foundry'
 cache_path  = 'forge-cache'
 
+bytecode_hash = "none"
+cbor_metadata = false
+always_use_create_2_factory = true
+
 fs_permissions = [{ access = "read", path = "./" }]
 
 [profile.sepolia]
@@ -15,3 +19,9 @@ eth_rpc_url="https://bsc-testnet-rpc.publicnode.com"
 
 [profile.hyper-testnet]
 eth_rpc_url="https://rpc.hyperliquid-testnet.xyz/evm"
+
+[fmt]
+line_length = 120
+tab_width = 4
+bracket_spacing = true
+ignore = ["lib/*", "node_modules/*"]
