@@ -47,11 +47,13 @@ contract OFTDeploymentScript is Script {
         console.log("Implementation deployed at:", address(impl));
 
         // Deploy MantleOFTAdapterProxy
-        bytes32 salt = keccak256(bytes("MantleOFTAdapterProxy"));
-        oftAdapter = _deployProxy(salt, deployerAddress);
-        _initProxy(
-            oftAdapter, address(impl), abi.encodeWithSelector(MantleOFTAdapterUpgradeable.initialize.selector, delegate)
+        TransparentUpgradeableProxy proxyContract = new TransparentUpgradeableProxy(
+            address(impl),
+            deployerAddress,
+            abi.encodeWithSelector(MantleOFTAdapterUpgradeable.initialize.selector, delegate)
         );
+        oftAdapter = address(proxyContract);
+        console.log("Proxy deployed at:", oftAdapter);
 
         vm.stopBroadcast();
 
