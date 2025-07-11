@@ -5,7 +5,10 @@ import { OFTUpgradeable } from "@layerzerolabs/oft-evm-upgradeable/contracts/oft
 
 /// @title MantleOFT
 /// @notice OFT is an ERC-20 token that extends the OFTCore contract.
-contract MantleOFTUpgradeable is OFTUpgradeable {
+contract MantleOFTHyperEVMUpgradeable is OFTUpgradeable {
+    /// keccak256("HyperCore deployer")
+    bytes32 private constant HyperCoreDeployerSlot = 0x8c306a6a12fff1951878e8621be6674add1102cd359dd968efbbe797629ef84f;
+
     constructor(address _lzEndpoint) OFTUpgradeable(_lzEndpoint) {
         _disableInitializers();
     }
@@ -13,5 +16,11 @@ contract MantleOFTUpgradeable is OFTUpgradeable {
     function initialize(string memory _name, string memory _symbol, address _owner) public initializer {
         __OFT_init(_name, _symbol, _owner);
         __Ownable_init(_owner);
+    }
+
+    function setHyperCoreDeployer(address _hyperCoreDeployer) public onlyOwner {
+        assembly {
+            sstore(HyperCoreDeployerSlot, _hyperCoreDeployer)
+        }
     }
 }

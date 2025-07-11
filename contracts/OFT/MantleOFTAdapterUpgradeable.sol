@@ -6,10 +6,7 @@ import { OFTAdapterUpgradeable } from "@layerzerolabs/oft-evm-upgradeable/contra
 /// @title MantleOFTAdapter
 /// @notice OFTAdapter uses a deployed ERC-20 token and SafeERC20 to interact with the OFTCore contract.
 contract MantleOFTAdapterUpgradeable is OFTAdapterUpgradeable {
-    constructor(
-        address _token,
-        address _lzEndpoint
-    ) OFTAdapterUpgradeable(_token, _lzEndpoint) {
+    constructor(address _token, address _lzEndpoint) OFTAdapterUpgradeable(_token, _lzEndpoint) {
         _disableInitializers();
     }
 

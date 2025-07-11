@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.so
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "contracts/OFT/MantleOFTUpgradeable.sol";
 import "contracts/OFT/MantleOFTAdapterUpgradeable.sol";
+import "contracts/OFT/MantleOFTHyperEVMUpgradeable.sol";
 
 /// @title OFTDeploymentScript
 /// @notice Script for deploying OFT and OFTAdapter contracts
@@ -22,13 +23,11 @@ contract OFTDeploymentScript is Script {
     address public oftAdapter;
     address public endpoint;
     address public delegate;
-    ProxyAdmin public proxyAdmin;
 
     function setUp() public {
         // Set deployment parameters from environment
         endpoint = vm.envAddress("LZ_ENDPOINT");
         delegate = vm.envAddress("DELEGATE");
-        proxyAdmin = ProxyAdmin(vm.envAddress("PROXY_ADMIN"));
     }
 
     function deployOFTAdapter(address mntAddress) public {
@@ -43,37 +42,16 @@ contract OFTDeploymentScript is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        if (address(proxyAdmin) == address(0)) {
-            proxyAdmin = new ProxyAdmin(deployerAddress);
-            console.log("ProxyAdmin deployed at:", address(proxyAdmin));
-            console.log("ProxyAdmin owner:", proxyAdmin.owner());
-        }
-
+        // Deploy MantleOFTAdapterImpl
         MantleOFTAdapterUpgradeable impl = new MantleOFTAdapterUpgradeable(mntAddress, endpoint);
         console.log("Implementation deployed at:", address(impl));
 
-        // Deploy MantleOFTAdapter
-        bytes32 salt = keccak256(bytes("MantleOFTAdapterUpgradeable"));
-        address expectedOFTAdapter = _getDeterministicAddress(
-            salt,
-            type(TransparentUpgradeableProxy).creationCode,
-            abi.encode(
-                address(impl),
-                address(proxyAdmin),
-                abi.encodeWithSelector(MantleOFTAdapterUpgradeable.initialize.selector, delegate)
-            )
+        // Deploy MantleOFTAdapterProxy
+        bytes32 salt = keccak256(bytes("MantleOFTAdapterProxy"));
+        oftAdapter = _deployProxy(salt, deployerAddress);
+        _initProxy(
+            oftAdapter, address(impl), abi.encodeWithSelector(MantleOFTAdapterUpgradeable.initialize.selector, delegate)
         );
-        console.log("Expected OFTAdapter:", expectedOFTAdapter);
-        TransparentUpgradeableProxy oftAdapterContract = new TransparentUpgradeableProxy{ salt: salt }(
-            address(impl),
-            address(proxyAdmin),
-            abi.encodeWithSelector(MantleOFTAdapterUpgradeable.initialize.selector, delegate)
-        );
-        oftAdapter = address(oftAdapterContract);
-        if (oftAdapter != expectedOFTAdapter) {
-            revert("Proxy address mismatch");
-        }
-        console.log("MantleOFTAdapter deployed at:", oftAdapter);
 
         vm.stopBroadcast();
 
@@ -96,38 +74,16 @@ contract OFTDeploymentScript is Script {
 
         vm.startBroadcast(deployerPrivateKey);
 
-        if (address(proxyAdmin) == address(0)) {
-            proxyAdmin = new ProxyAdmin(deployerAddress);
-            console.log("ProxyAdmin deployed at:", address(proxyAdmin));
-            console.log("ProxyAdmin owner:", proxyAdmin.owner());
-        }
-
         MantleOFTUpgradeable impl = new MantleOFTUpgradeable(endpoint);
         console.log("Implementation deployed at:", address(impl));
 
         // Deploy the proxy contract
-        bytes32 salt = keccak256(bytes("MantleOFTUpgradeable"));
-        address expectedOFT = _getDeterministicAddress(
-            salt,
-            type(TransparentUpgradeableProxy).creationCode,
-            abi.encode(
-                address(impl),
-                address(proxyAdmin),
-                abi.encodeWithSelector(MantleOFTUpgradeable.initialize.selector, TOKEN_NAME, TOKEN_SYMBOL, delegate)
-            )
-        );
+        bytes32 salt = keccak256(bytes("MantleOFTProxy"));
+        oft = _deployProxy(salt, deployerAddress);
 
-        console.log("Expected proxy address:", expectedOFT);
-        TransparentUpgradeableProxy proxyContract = new TransparentUpgradeableProxy{ salt: salt }(
-            address(impl),
-            address(proxyAdmin),
-            abi.encodeWithSelector(MantleOFTUpgradeable.initialize.selector, TOKEN_NAME, TOKEN_SYMBOL, delegate)
-        );
-        oft = address(proxyContract);
-        if (oft != expectedOFT) {
-            revert("Proxy address mismatch");
-        }
-        console.log("Proxy deployed at:", oft);
+        bytes memory initData =
+            abi.encodeWithSelector(MantleOFTUpgradeable.initialize.selector, TOKEN_NAME, TOKEN_SYMBOL, delegate);
+        _initProxy(oft, address(impl), initData);
 
         vm.stopBroadcast();
 
@@ -138,6 +94,66 @@ contract OFTDeploymentScript is Script {
 
         console.log("\n=== DEPLOYMENT SUMMARY ===");
         console.log("MantleOFT:", oft);
+    }
+
+    function deployOFTHyperEVM() public {
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        address deployerAddress = vm.addr(deployerPrivateKey);
+
+        console.log("Deploying OFT contracts...");
+        console.log("Deployer address:", deployerAddress);
+        console.log("LayerZero Endpoint:", endpoint);
+        console.log("Delegate:", delegate);
+
+        vm.startBroadcast(deployerPrivateKey);
+
+        MantleOFTHyperEVMUpgradeable impl = new MantleOFTHyperEVMUpgradeable(endpoint);
+        console.log("Implementation deployed at:", address(impl));
+
+        // Deploy the proxy contract
+        bytes32 salt = keccak256(bytes("MantleOFTProxy"));
+        oft = _deployProxy(salt, deployerAddress);
+
+        bytes memory initData =
+            abi.encodeWithSelector(MantleOFTHyperEVMUpgradeable.initialize.selector, TOKEN_NAME, TOKEN_SYMBOL, delegate);
+        _initProxy(oft, address(impl), initData);
+
+        vm.stopBroadcast();
+
+        // try and check HyperCoreDeployer
+        vm.prank(delegate);
+        bytes32 slot = keccak256(bytes("HyperCore deployer"));
+        MantleOFTHyperEVMUpgradeable(oft).setHyperCoreDeployer(address(10));
+        require(vm.load(oft, slot) == bytes32(uint256(10)), "HyperCoreDeployer mismatch");
+
+        console.log("MantleOFT Token Name:", MantleOFTHyperEVMUpgradeable(oft).name());
+        console.log("MantleOFT Token Symbol:", MantleOFTHyperEVMUpgradeable(oft).symbol());
+        console.log("MantleOFT Token Decimals:", MantleOFTHyperEVMUpgradeable(oft).decimals());
+        console.log("MantleOFT Approval Required:", MantleOFTHyperEVMUpgradeable(oft).approvalRequired());
+
+        console.log("\n=== DEPLOYMENT SUMMARY ===");
+        console.log("MantleOFT:", oft);
+    }
+
+    function _deployProxy(bytes32 salt, address deployer) internal returns (address) {
+        address tempImpl = 0x4e59b44847b379578588920cA78FbF26c0B4956C; // we use default create2 factory as a temp impl
+        address expectedAddress = _getDeterministicAddress(
+            salt, type(TransparentUpgradeableProxy).creationCode, abi.encode(tempImpl, deployer, bytes(""))
+        );
+
+        // If the proxy is already deployed at the expected address, do nothing
+        if (expectedAddress.code.length != 0) {
+            console.log("Proxy already deployed at:", expectedAddress);
+            return expectedAddress;
+        }
+
+        TransparentUpgradeableProxy proxyContract =
+            new TransparentUpgradeableProxy{ salt: salt }(tempImpl, deployer, bytes(""));
+        if (address(proxyContract) != expectedAddress) {
+            revert("Proxy address mismatch");
+        }
+        console.log("Proxy deployed at:", address(proxyContract));
+        return address(proxyContract);
     }
 
     function _getDeterministicAddress(bytes32 salt, bytes memory creationCode, bytes memory initData)
@@ -159,5 +175,11 @@ contract OFTDeploymentScript is Script {
                 )
             )
         );
+    }
+
+    function _initProxy(address proxy, address impl, bytes memory initData) internal {
+        bytes32 slot = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
+        address admin = address(uint160(uint256(vm.load(proxy, slot))));
+        ProxyAdmin(admin).upgradeAndCall(ITransparentUpgradeableProxy(proxy), impl, initData);
     }
 }
