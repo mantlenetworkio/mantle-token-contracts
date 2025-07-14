@@ -17,7 +17,7 @@ contract SendOFT is Script {
         return bytes32(uint256(uint160(_addr)));
     }
 
-    /// @dev use:FOUNDRY_PROFILE=sepolia forge script scripts/foundry/SendOFT.s.sol --sig "sendOFT(address,uint32,address,uint256)" 0x0A47fcA335c9879014D3150b2478aFb53c8eE5aF 40102 0xD3E476239EC4Bd04daf76A4f8BA4E56139a41b5c 100000000000000000000
+    /// @dev use:FOUNDRY_PROFILE=sepolia forge script scripts/foundry/SendOFT.s.sol --sig "sendOFT(address,uint32,address,uint256)" 0xDce36E15E4f674970aB745D4b7a6E1e3CD8D8Fa6 40102 0xD3E476239EC4Bd04daf76A4f8BA4E56139a41b5c 100000000000000000000
     function sendOFT(address oftAddress, uint32 dstEid, address toAddress, uint256 tokensToSend) external {
         uint256 callerPrivateKey = vm.envUint("PRIVATE_KEY");
         address callerAddress = vm.addr(callerPrivateKey);

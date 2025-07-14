@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.22;
 
-import "forge-std/Script.sol";
+import "./BaseScript.s.sol";
 import { ILayerZeroEndpointV2 } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/ILayerZeroEndpointV2.sol";
 import { SetConfigParam } from "@layerzerolabs/lz-evm-protocol-v2/contracts/interfaces/IMessageLibManager.sol";
 import { UlnConfig } from "@layerzerolabs/lz-evm-messagelib-v2/contracts/uln/UlnBase.sol";
@@ -10,72 +10,80 @@ import { IOAppCore } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/interfac
 import { IOAppOptionsType3 } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/interfaces/IOAppOptionsType3.sol";
 import { EnforcedOptionParam } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OAppOptionsType3.sol";
 import { OptionsBuilder } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
-import { stdToml } from "forge-std/StdToml.sol";
-import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
-
-struct Config {
-    address endpoint;
-    address oapp;
-    uint32 remoteEid;
-    address lib;
-    uint32 confirmations;
-    uint8 reqDvnCount;
-    address[] dvns;
-}
 
 /// @title LayerZero Send Configuration Script (A → B)
 /// @notice Defines and applies ULN (DVN) + Executor configs for cross‑chain messages sent from Chain A to Chain B via LayerZero Endpoint V2.
-contract ConfigOFT is Script {
+contract ConfigOFT is BaseScript {
     using stdToml for string;
     using OptionsBuilder for bytes;
 
     uint32 constant EXECUTOR_CONFIG_TYPE = 1;
     uint32 constant ULN_CONFIG_TYPE = 2;
 
-    string constant TOML_PATH = "scripts/foundry/oft.config.toml";
-    string public toml;
+    address public endpoint;
+    address public oft;
+    address public sendLib;
+    address public receiveLib;
+    mapping(string => address) public dvnMap;
 
-    function setUp() public {
-        toml = vm.readFile(TOML_PATH);
+    function setUp() public override {
+        super.setUp();
+
+        string memory network = string.concat(networkName, ".", networkKey);
+        endpoint = config.readAddress(string.concat(".lz.", network, ".endpoint"));
+        oft = _readDeployment(string.concat(".oft.", network));
+        sendLib = config.readAddress(string.concat(".lz.", network, ".send_lib"));
+        receiveLib = config.readAddress(string.concat(".lz.", network, ".receive_lib"));
+        string[] memory dvnsName = config.readStringArray(string.concat(".lz.", network, ".dvns_name"));
+        address[] memory dvnsAddr = config.readAddressArray(string.concat(".lz.", network, ".dvns_addr"));
+        for (uint256 i; i < dvnsName.length; i++) {
+            dvnMap[dvnsName[i]] = dvnsAddr[i];
+        }
     }
 
     /// @dev use: FOUNDRY_PROFILE=sepolia forge script scripts/foundry/ConfigOFT.s.sol --sig "setSendConfig(string,string)" eth bsc
     function setSendConfig(string memory from, string memory to) external {
         _sanityCheck(true, from, to);
-        _setConfig(_isMainnet(), true, from, to);
+        _setConfig(true, from, to);
     }
 
     /// @dev use: FOUNDRY_PROFILE=bsc-testnet forge script scripts/foundry/ConfigOFT.s.sol --sig "setReceiveConfig(string,string)" eth bsc
     function setReceiveConfig(string memory from, string memory to) external {
         _sanityCheck(false, from, to);
-        _setConfig(_isMainnet(), false, from, to);
+        _setConfig(false, from, to);
     }
 
     /// @dev use: FOUNDRY_PROFILE=sepolia forge script scripts/foundry/ConfigOFT.s.sol --sig "setEnforcedOption(string)" eth
     function setEnforcedOption(string memory from) external {
         _sanityCheck(true, from, "");
-        _setEnforcedOption(_isMainnet(), from);
+        _setEnforcedOption(from);
     }
 
-    function _setConfig(bool mainnet, bool send, string memory from, string memory to) internal {
-        uint256 callerPrivateKey = vm.envUint("PRIVATE_KEY");
-        address callAddress = vm.addr(callerPrivateKey);
-        console.log("callAddress", callAddress);
+    function _setConfig(bool send, string memory from, string memory to) internal {
         console.log("configuring from", from, "to", to);
 
-        string memory key =
-            string.concat(".", mainnet ? "mainnet" : "testnet", ".", from, ".", to, ".", send ? "send" : "receive");
-        Config memory config = abi.decode(toml.parseRaw(key), (Config));
+        string memory key = string.concat(".config.", from, ".", to, send ? ".send" : ".receive");
+        uint32 confirmations = uint32(config.readUint(string.concat(key, ".confirmations")));
+        uint8 reqDvnCount = uint8(config.readUint(string.concat(key, ".req_dvn_count")));
+        string[] memory dvnsName = config.readStringArray(string.concat(key, ".dvns"));
+        address[] memory dvns = new address[](dvnsName.length);
+        for (uint256 i; i < dvnsName.length; i++) {
+            dvns[i] = dvnMap[dvnsName[i]];
+            if (dvns[i] == address(0)) {
+                revert(string.concat("dvn ", dvnsName[i], " not found"));
+            }
+        }
 
-        address endpoint = config.endpoint;
-        address oapp = config.oapp;
-        uint32 eid = config.remoteEid;
-        address lib = config.lib;
+        // Sort dvns in ascending order
+        _sortAddresses(dvns);
+
+        uint32 eid = uint32(config.readUint(string.concat(".lz.", send ? to : from, ".", networkKey, ".eid")));
+        address lib = send ? sendLib : receiveLib;
 
         console.log("endpoint", endpoint);
-        console.log("oapp", oapp);
-        console.log("eid", eid);
-        console.log("lib", lib);
+        console.log("oapp", oft);
+        console.log("remote eid", eid);
+        console.log(send ? "send" : "receive", "lib", lib);
 
         /// @notice ULNConfig defines security parameters (DVNs + confirmation threshold) for A → B
         /// @notice Send config requests these settings to be applied to the DVNs and Executor for messages sent from A to B
@@ -83,11 +91,11 @@ contract ConfigOFT is Script {
         /// @dev uint8 internal constant NIL_DVN_COUNT = type(uint8).max;
         /// @dev uint64 internal constant NIL_CONFIRMATIONS = type(uint64).max;
         UlnConfig memory uln = UlnConfig({
-            confirmations: config.confirmations, // minimum block confirmations required on A before sending to B
-            requiredDVNCount: config.reqDvnCount, // number of DVNs required
+            confirmations: confirmations, // minimum block confirmations required on A before sending to B
+            requiredDVNCount: reqDvnCount, // number of DVNs required
             optionalDVNCount: type(uint8).max, // optional DVNs count, uint8
             optionalDVNThreshold: 0, // optional DVN threshold
-            requiredDVNs: config.dvns, // sorted list of required DVN addresses
+            requiredDVNs: dvns, // sorted list of required DVN addresses
             optionalDVNs: new address[](0) // sorted list of optional DVNs
          });
 
@@ -96,39 +104,36 @@ contract ConfigOFT is Script {
         SetConfigParam[] memory params = new SetConfigParam[](1);
         params[0] = SetConfigParam(eid, ULN_CONFIG_TYPE, encodedUln);
 
-        vm.startBroadcast(callerPrivateKey);
-        ILayerZeroEndpointV2(endpoint).setConfig(oapp, lib, params); // Set config for messages sent from A to B
-        if (send && toml.readBool(".set_peer")) {
+        vm.startBroadcast(deployerPrivateKey);
+
+        ILayerZeroEndpointV2(endpoint).setConfig(oft, lib, params); // Set config for messages sent from A to B
+
+        if (send && config.readBool(".config.set_peer")) {
             console.log("setting peer for", from, "to", to);
-            string memory peerKey =
-                string.concat(".", mainnet ? "mainnet" : "testnet", ".", from, ".", to, ".", "receive.b_oapp");
-            address peer = abi.decode(toml.parseRaw(peerKey), (address));
-            console.log("peer", peer);
-            IOAppCore(oapp).setPeer(eid, bytes32(uint256(uint160(peer))));
+            address peer = _readDeployment(string.concat(".oft.", to, ".", networkKey));
+            console.log("peer", eid, peer);
+            IOAppCore(oft).setPeer(eid, bytes32(uint256(uint160(peer))));
         }
+
         vm.stopBroadcast();
 
-        _getConfig(endpoint, oapp, lib, eid);
+        _getConfig(endpoint, oft, lib, eid);
     }
 
-    function _setEnforcedOption(bool mainnet, string memory from) internal {
-        uint256 callerPrivateKey = vm.envUint("PRIVATE_KEY");
-        address callAddress = vm.addr(callerPrivateKey);
-        console.log("callAddress", callAddress);
+    function _setEnforcedOption(string memory from) internal {
         console.log("setting enforced options for", from);
 
-        string memory key = string.concat(".", mainnet ? "mainnet" : "testnet", ".", from, ".enforced_options");
-        address oapp = toml.readAddress(string.concat(key, ".oapp"));
-        console.log("oapp", oapp);
-        uint256[] memory dstEids = toml.readUintArray(string.concat(key, ".dst_eids"));
-        for (uint256 i; i < dstEids.length; i++) {
-            console.log("dstEid", dstEids[i]);
+        string memory key = string.concat(".config.", from, ".enforced_options");
+        console.log("oft", oft);
+        string[] memory dsts = config.readStringArray(string.concat(key, ".dsts"));
+        uint256[] memory dstEids = new uint256[](dsts.length);
+        uint256[] memory gasOptions = config.readUintArray(string.concat(key, ".gas_options"));
+        require(dsts.length == gasOptions.length, "dsts and gasOptions must have the same length");
+
+        for (uint256 i; i < dsts.length; i++) {
+            dstEids[i] = uint256(config.readUint(string.concat(".lz.", dsts[i], ".", networkKey, ".eid")));
+            console.log("dst", dsts[i], dstEids[i], gasOptions[i]);
         }
-        uint256[] memory gasOptions = toml.readUintArray(string.concat(key, ".gas_options"));
-        for (uint256 i; i < gasOptions.length; i++) {
-            console.log("gasOption", gasOptions[i]);
-        }
-        require(dstEids.length == gasOptions.length, "dstEids and gasOptions must have the same length");
 
         // Message type (should match your contract's constant)
         uint16 SEND = 1; // Message type for sendString function
@@ -140,10 +145,10 @@ contract ConfigOFT is Script {
             enforcedOptions[i] = EnforcedOptionParam({ eid: uint32(dstEids[i]), msgType: SEND, options: options });
         }
 
-        vm.startBroadcast(callerPrivateKey);
+        vm.startBroadcast(deployerPrivateKey);
 
         // Set enforced options on the OApp
-        IOAppOptionsType3(oapp).setEnforcedOptions(enforcedOptions);
+        IOAppOptionsType3(oft).setEnforcedOptions(enforcedOptions);
 
         vm.stopBroadcast();
 
@@ -151,8 +156,8 @@ contract ConfigOFT is Script {
     }
 
     function _getConfig(address _endpoint, address _oapp, address _lib, uint32 _remoteEid) internal view {
-        ILayerZeroEndpointV2 endpoint = ILayerZeroEndpointV2(_endpoint);
-        bytes memory receiveUlnConfigBytes = endpoint.getConfig(_oapp, _lib, _remoteEid, ULN_CONFIG_TYPE);
+        bytes memory receiveUlnConfigBytes =
+            ILayerZeroEndpointV2(_endpoint).getConfig(_oapp, _lib, _remoteEid, ULN_CONFIG_TYPE);
 
         UlnConfig memory config = abi.decode(receiveUlnConfigBytes, (UlnConfig));
         console.log("get config:");
@@ -170,23 +175,29 @@ contract ConfigOFT is Script {
         }
     }
 
-    function _isMainnet() internal view returns (bool) {
-        return block.chainid == 1 || block.chainid == 56 || block.chainid == 999;
-    }
-
     function _sanityCheck(bool setSend, string memory from, string memory to) internal view {
         if (keccak256(bytes(from)) == keccak256(bytes(to))) {
             revert("from and to cannot be the same");
         }
         string memory targetChain = setSend ? from : to;
-        if (bytes32(bytes(targetChain)) == bytes32(bytes("eth"))) {
-            require(block.chainid == 1 || block.chainid == 11155111, "current chain is not ethereum");
-        } else if (bytes32(bytes(targetChain)) == bytes32(bytes("bsc"))) {
-            require(block.chainid == 56 || block.chainid == 97, "current chain is not bsc");
-        } else if (bytes32(bytes(targetChain)) == bytes32(bytes("hyper"))) {
-            require(block.chainid == 999 || block.chainid == 998, "current chain is not hyper");
-        } else {
-            revert("unsupported chain, either eth | bsc | hyper");
+        if (bytes32(bytes(targetChain)) != bytes32(bytes(networkName))) {
+            string memory revertReason = string.concat("target chain ", targetChain, " is not ", networkName);
+            revert(revertReason);
+        }
+    }
+
+    /// @dev Sorts an array of addresses in ascending order using bubble sort
+    function _sortAddresses(address[] memory addresses) internal pure {
+        uint256 length = addresses.length;
+        for (uint256 i = 0; i < length - 1; i++) {
+            for (uint256 j = 0; j < length - i - 1; j++) {
+                if (addresses[j] > addresses[j + 1]) {
+                    // Swap addresses
+                    address temp = addresses[j];
+                    addresses[j] = addresses[j + 1];
+                    addresses[j + 1] = temp;
+                }
+            }
         }
     }
 }
