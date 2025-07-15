@@ -59,7 +59,7 @@ contract OFTDeploymentScript is BaseScript {
             oftAdapter = _deployProxy(
                 impl, deployerAddress, abi.encodeWithSelector(MantleOFTAdapterUpgradeable.initialize.selector, delegate)
             );
-            _writeDeployment(string.concat(".oft.", networkName, networkKey), oftAdapter);
+            _writeDeployment(string.concat(".oft.", networkName, ".", networkKey), oftAdapter);
         } else {
             console.log("OFTAdapter already deployed at", oftAdapter);
             _upgradeProxy(oftAdapter, impl, bytes(""));
@@ -77,6 +77,9 @@ contract OFTDeploymentScript is BaseScript {
 
     /// @dev use: FOUNDRY_PROFILE=bsc-testnet forge script scripts/foundry/deployOFT.s.sol --sig "deployOFT()"
     function deployOFT() public {
+        require(
+            bytes32(bytes(networkName)) != bytes32(bytes("eth")), "You can only deploy OFT on non-Ethereum networks"
+        );
         console.log("Deploying OFT on", networkName);
         console.log("Deployer address:", deployerAddress);
         console.log("LayerZero Endpoint:", endpoint);
@@ -99,7 +102,7 @@ contract OFTDeploymentScript is BaseScript {
             deployerAddress,
             abi.encodeWithSelector(MantleOFTUpgradeable.initialize.selector, TOKEN_NAME, TOKEN_SYMBOL, delegate)
         );
-        _writeDeployment(string.concat(".oft.", networkName, networkKey), oft);
+        _writeDeployment(string.concat(".oft.", networkName, ".", networkKey), oft);
 
         vm.stopBroadcast();
 
