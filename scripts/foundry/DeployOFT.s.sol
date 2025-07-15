@@ -25,9 +25,9 @@ contract OFTDeploymentScript is BaseScript {
     address public delegate;
 
     // Salts
-    bytes32 public oftAdapterImplSalt;
-    bytes32 public oftImplSalt;
-    bytes32 public oftProxySalt;
+    string public oftAdapterImplSalt;
+    string public oftImplSalt;
+    string public oftProxySalt;
 
     function setUp() public override {
         super.setUp();
@@ -36,9 +36,9 @@ contract OFTDeploymentScript is BaseScript {
         delegate = config.readAddress(string.concat(".deploy.delegate"));
         mnt = config.readAddress(string.concat(".mnt.", networkKey));
         oftAdapter = _readDeployment(string.concat(".oft.eth.", networkKey));
-        oftAdapterImplSalt = keccak256(bytes(config.readString(".salt.oft_adapter_impl")));
-        oftImplSalt = keccak256(bytes(config.readString(".salt.oft_impl")));
-        oftProxySalt = keccak256(bytes(config.readString(".salt.oft_proxy")));
+        oftAdapterImplSalt = config.readString(".salt.oft_adapter_impl");
+        oftImplSalt = config.readString(".salt.oft_impl");
+        oftProxySalt = config.readString(".salt.oft_proxy");
     }
 
     /// @dev use: FOUNDRY_PROFILE=sepolia forge script scripts/foundry/deployOFT.s.sol --sig "deployOFTAdapter()"
@@ -50,31 +50,19 @@ contract OFTDeploymentScript is BaseScript {
         console.log("LayerZero Endpoint:", endpoint);
         console.log("Delegate:", delegate);
 
-        address expectedImpl = _getDeterministicAddress(
-            oftAdapterImplSalt, type(MantleOFTAdapterUpgradeable).creationCode, abi.encode(mnt, endpoint)
-        );
-
         vm.startBroadcast(deployerPrivateKey);
 
-        if (expectedImpl.code.length == 0) {
-            console.log("Deploying new MantleOFTAdapterImpl");
-            address impl = address(new MantleOFTAdapterUpgradeable{ salt: oftAdapterImplSalt }(mnt, endpoint));
-            if (impl != expectedImpl) {
-                revert("MantleOFTAdapterImpl mismatch");
-            }
-            console.log("MantleOFTAdapterImpl deployed at", impl);
-        }
+        address impl =
+            _create2(oftAdapterImplSalt, type(MantleOFTAdapterUpgradeable).creationCode, abi.encode(mnt, endpoint));
 
         if (oftAdapter == address(0)) {
             oftAdapter = _deployProxy(
-                address(new MantleOFTAdapterUpgradeable(mnt, endpoint)),
-                deployerAddress,
-                abi.encodeWithSelector(MantleOFTAdapterUpgradeable.initialize.selector, delegate)
+                impl, deployerAddress, abi.encodeWithSelector(MantleOFTAdapterUpgradeable.initialize.selector, delegate)
             );
             _writeDeployment(string.concat(".oft.", networkName, networkKey), oftAdapter);
         } else {
             console.log("OFTAdapter already deployed at", oftAdapter);
-            _upgradeProxy(oftAdapter, expectedImpl, bytes(""));
+            _upgradeProxy(oftAdapter, impl, bytes(""));
         }
 
         vm.stopBroadcast();
@@ -96,35 +84,18 @@ contract OFTDeploymentScript is BaseScript {
 
         bool onHyperEvm = bytes32(bytes(networkName)) == bytes32(bytes("hyper"));
 
-        address expectedImpl;
-        if (onHyperEvm) {
-            expectedImpl = _getDeterministicAddress(
-                oftImplSalt, type(MantleOFTHyperEVMUpgradeable).creationCode, abi.encode(endpoint)
-            );
-        } else {
-            expectedImpl =
-                _getDeterministicAddress(oftImplSalt, type(MantleOFTUpgradeable).creationCode, abi.encode(endpoint));
-        }
-
         vm.startBroadcast(deployerPrivateKey);
 
-        if (expectedImpl.code.length == 0) {
-            console.log("Deploying new MantleOFTImpl");
-            address impl;
-            if (onHyperEvm) {
-                impl = address(new MantleOFTHyperEVMUpgradeable{ salt: oftImplSalt }(endpoint));
-            } else {
-                impl = address(new MantleOFTUpgradeable{ salt: oftImplSalt }(endpoint));
-            }
-            if (impl != expectedImpl) {
-                revert("MantleOFTImpl mismatch");
-            }
-            console.log("MantleOFTImpl deployed at", impl);
+        address impl;
+        if (onHyperEvm) {
+            impl = _create2(oftImplSalt, type(MantleOFTHyperEVMUpgradeable).creationCode, abi.encode(endpoint));
+        } else {
+            impl = _create2(oftImplSalt, type(MantleOFTUpgradeable).creationCode, abi.encode(endpoint));
         }
 
         oft = _deployAndUpgradeProxyAtDeterministicAddress(
             oftProxySalt,
-            expectedImpl,
+            impl,
             deployerAddress,
             abi.encodeWithSelector(MantleOFTUpgradeable.initialize.selector, TOKEN_NAME, TOKEN_SYMBOL, delegate)
         );

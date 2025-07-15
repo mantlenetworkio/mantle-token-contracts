@@ -60,6 +60,28 @@ contract BaseScript is Script {
         }
     }
 
+    function _create2(string memory saltStr, bytes memory creationCode, bytes memory args)
+        internal
+        returns (address impl)
+    {
+        bytes32 salt = keccak256(bytes(saltStr));
+        address expectedAddress = _getDeterministicAddress(salt, creationCode, args);
+        if (expectedAddress.code.length != 0) {
+            console.log(saltStr, "already deployed at", expectedAddress);
+            return expectedAddress;
+        }
+        bytes memory code = abi.encodePacked(creationCode, args);
+        assembly {
+            impl := create2(0, add(code, 0x20), mload(code), salt)
+            if iszero(impl) { revert(0, 0) }
+        }
+        if (impl != expectedAddress) {
+            revert("Impl address mismatch");
+        }
+        console.log(saltStr, "deployed at", expectedAddress);
+        return expectedAddress;
+    }
+
     function _deployProxy(address impl, address deployer, bytes memory initData) internal returns (address) {
         TransparentUpgradeableProxy proxyContract = new TransparentUpgradeableProxy(impl, deployer, initData);
         console.log("Proxy deployed at:", address(proxyContract));
@@ -68,12 +90,13 @@ contract BaseScript is Script {
     }
 
     function _deployAndUpgradeProxyAtDeterministicAddress(
-        bytes32 salt,
+        string memory saltStr,
         address impl,
         address deployer,
         bytes memory initData
     ) internal returns (address) {
         address tempImpl = 0x4e59b44847b379578588920cA78FbF26c0B4956C; // we use default create2 factory as a temp impl
+        bytes32 salt = keccak256(bytes(saltStr));
         address expectedAddress = _getDeterministicAddress(
             salt, type(TransparentUpgradeableProxy).creationCode, abi.encode(tempImpl, deployer, bytes(""))
         );
