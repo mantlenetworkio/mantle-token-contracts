@@ -3,8 +3,12 @@ pragma solidity ^0.8.20;
 
 import "forge-std/Script.sol";
 import "forge-std/console.sol";
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
-import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
+import {
+    ITransparentUpgradeableProxy,
+    TransparentUpgradeableProxy,
+    ERC1967Utils
+} from "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import { ProxyAdmin } from "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import { stdToml } from "forge-std/StdToml.sol";
 import { stdJson } from "forge-std/StdJson.sol";
 import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
@@ -139,8 +143,12 @@ contract BaseScript is Script {
     }
 
     function _upgradeProxy(address proxy, address impl, bytes memory callData) internal {
-        bytes32 slot = 0xb53127684a568b3173ae13b9f8a6016e243e63b6e8ee1178d6a717850b5d6103;
-        address admin = address(uint160(uint256(vm.load(proxy, slot))));
+        address oldImpl = address(uint160(uint256(vm.load(proxy, ERC1967Utils.IMPLEMENTATION_SLOT))));
+        if (oldImpl == impl) {
+            console.log("Proxy's current implementation is the same as the new implementation:", impl);
+            return;
+        }
+        address admin = address(uint160(uint256(vm.load(proxy, ERC1967Utils.ADMIN_SLOT))));
         ProxyAdmin(admin).upgradeAndCall(ITransparentUpgradeableProxy(proxy), impl, callData);
         console.log("Proxy upgraded to implementation:", impl);
     }

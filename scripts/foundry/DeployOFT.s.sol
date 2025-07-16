@@ -2,9 +2,9 @@
 pragma solidity ^0.8.20;
 
 import "./BaseScript.s.sol";
-import "contracts/OFT/MantleOFTUpgradeable.sol";
-import "contracts/OFT/MantleOFTAdapterUpgradeable.sol";
-import "contracts/OFT/MantleOFTHyperEVMUpgradeable.sol";
+import { MantleOFTUpgradeable } from "contracts/OFT/MantleOFTUpgradeable.sol";
+import { MantleOFTAdapterUpgradeable } from "contracts/OFT/MantleOFTAdapterUpgradeable.sol";
+import { MantleOFTHyperEVMUpgradeable } from "contracts/OFT/MantleOFTHyperEVMUpgradeable.sol";
 
 /// @title OFTDeploymentScript
 /// @notice Script for deploying OFT and OFTAdapter contracts
