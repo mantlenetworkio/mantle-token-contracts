@@ -10,6 +10,7 @@ import { IOAppCore } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/interfac
 import { IOAppOptionsType3 } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/interfaces/IOAppOptionsType3.sol";
 import { EnforcedOptionParam } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OAppOptionsType3.sol";
 import { OptionsBuilder } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
+import { MantleOFTHyperEVMUpgradeable } from "contracts/OFT/MantleOFTHyperEVMUpgradeable.sol";
 
 /// @title LayerZero Send Configuration Script (A → B)
 /// @notice Defines and applies ULN (DVN) + Executor configs for cross‑chain messages sent from Chain A to Chain B via LayerZero Endpoint V2.
@@ -39,6 +40,14 @@ contract ConfigOFT is BaseScript {
         for (uint256 i; i < dvnsName.length; i++) {
             dvnMap[dvnsName[i]] = dvnsAddr[i];
         }
+
+        require(endpoint != address(0), "Endpoint is not set");
+        require(oft != address(0), "OFT is not set");
+        require(sendLib != address(0), "Send lib is not set");
+        require(receiveLib != address(0), "Receive lib is not set");
+        require(dvnsName.length > 0, "DVNs are not set");
+        require(dvnsAddr.length > 0, "DVNs are not set");
+        require(dvnsName.length == dvnsAddr.length, "DVNs name and address length mismatch");
     }
 
     /// @dev use: FOUNDRY_PROFILE=sepolia forge script scripts/foundry/ConfigOFT.s.sol --sig "setSendConfig(string,string)" eth bsc
@@ -59,13 +68,32 @@ contract ConfigOFT is BaseScript {
         _setEnforcedOption(from);
     }
 
+    /// @dev use: FOUNDRY_PROFILE=hyper-testnet forge script scripts/foundry/ConfigOFT.s.sol --sig "setHyperCoreDeployer()"
+    function setHyperCoreDeployer() external {
+        require(bytes32(bytes(networkName)) == bytes32(bytes("hyper")), "This function is only available on HyperEVM");
+        address hyperCoreDeployer = config.readAddress(string.concat(".config.hypercore_deployer"));
+        console.log("setting hypercore deployer");
+        console.log("oft", oft);
+        console.log("hypercore deployer", hyperCoreDeployer);
+        bytes32 slot = keccak256(bytes("HyperCore deployer"));
+        address currentHyperCoreDeployer = address(uint160(uint256(vm.load(oft, slot))));
+        console.log("current hypercore deployer", currentHyperCoreDeployer);
+        require(currentHyperCoreDeployer != hyperCoreDeployer, "HyperCore deployer is already set");
+        vm.startBroadcast(deployerPrivateKey);
+        MantleOFTHyperEVMUpgradeable(oft).setHyperCoreDeployer(hyperCoreDeployer);
+        vm.stopBroadcast();
+        require(vm.load(oft, slot) == bytes32(uint256(uint160(hyperCoreDeployer))), "HyperCore deployer mismatch");
+    }
+
     function _setConfig(bool send, string memory from, string memory to) internal {
         console.log("configuring from", from, "to", to);
 
         string memory key = string.concat(".config.", from, ".", to, send ? ".send" : ".receive");
         uint32 confirmations = uint32(config.readUint(string.concat(key, ".confirmations")));
         uint8 reqDvnCount = uint8(config.readUint(string.concat(key, ".req_dvn_count")));
+        require(reqDvnCount > 0, "req_dvn_count must be greater than 0");
         string[] memory dvnsName = config.readStringArray(string.concat(key, ".dvns"));
+        require(dvnsName.length >= reqDvnCount, "dvns count is less than required");
         address[] memory dvns = new address[](dvnsName.length);
         for (uint256 i; i < dvnsName.length; i++) {
             dvns[i] = dvnMap[dvnsName[i]];
@@ -127,22 +155,38 @@ contract ConfigOFT is BaseScript {
         console.log("oft", oft);
         string[] memory dsts = config.readStringArray(string.concat(key, ".dsts"));
         uint256[] memory dstEids = new uint256[](dsts.length);
-        uint256[] memory gasOptions = config.readUintArray(string.concat(key, ".gas_options"));
-        require(dsts.length == gasOptions.length, "dsts and gasOptions must have the same length");
+        uint256[] memory receiveGasOptions = config.readUintArray(string.concat(key, ".lzReceive_gas_options"));
+        uint256[] memory composeGasOptions = config.readUintArray(string.concat(key, ".lzCompose_gas_options"));
+        require(dsts.length == receiveGasOptions.length, "dsts and receiveGasOptions must have the same length");
+        require(dsts.length == composeGasOptions.length, "dsts and composeGasOptions must have the same length");
 
         for (uint256 i; i < dsts.length; i++) {
             dstEids[i] = uint256(config.readUint(string.concat(".lz.", dsts[i], ".", networkKey, ".eid")));
-            console.log("dst", dsts[i], dstEids[i], gasOptions[i]);
+            console.log("dst", dsts[i], dstEids[i]);
+            console.log("receiveGasOptions", receiveGasOptions[i]);
+            console.log("composeGasOptions", composeGasOptions[i]);
         }
 
         // Message type (should match your contract's constant)
         uint16 SEND = 1; // Message type for sendString function
+        uint16 SEND_AND_CALL = 2; // Message type for sendStringAndCall function
 
         // Create enforced options array
         EnforcedOptionParam[] memory enforcedOptions = new EnforcedOptionParam[](dstEids.length);
         for (uint256 i; i < dstEids.length; i++) {
-            bytes memory options = OptionsBuilder.newOptions().addExecutorLzReceiveOption(uint128(gasOptions[i]), 0);
-            enforcedOptions[i] = EnforcedOptionParam({ eid: uint32(dstEids[i]), msgType: SEND, options: options });
+            bytes memory options =
+                OptionsBuilder.newOptions().addExecutorLzReceiveOption(uint128(receiveGasOptions[i]), 0);
+            if (composeGasOptions[i] > 0) {
+                require(
+                    bytes32(bytes(dsts[i])) == bytes32(bytes("hyper")),
+                    "lzCompose_gas_options is only available for HyperEVM"
+                );
+                options = options.addExecutorLzComposeOption(0, uint128(composeGasOptions[i]), 0);
+                enforcedOptions[i] =
+                    EnforcedOptionParam({ eid: uint32(dstEids[i]), msgType: SEND_AND_CALL, options: options });
+            } else {
+                enforcedOptions[i] = EnforcedOptionParam({ eid: uint32(dstEids[i]), msgType: SEND, options: options });
+            }
         }
 
         vm.startBroadcast(deployerPrivateKey);

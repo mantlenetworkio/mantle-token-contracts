@@ -13,6 +13,7 @@ contract SendOFT is BaseScript {
 
     address public oft;
     address public mnt;
+    address public composer;
 
     uint256 public constant APPROVE_AMOUNT = type(uint256).max;
 
@@ -20,18 +21,75 @@ contract SendOFT is BaseScript {
         super.setUp();
 
         oft = _readDeployment(string.concat(".oft.", networkName, ".", networkKey));
+        composer = _readDeployment(string.concat(".hyperliquid_composer.", networkKey));
         mnt = config.readAddress(string.concat(".mnt.", networkKey));
+
+        require(oft != address(0), "OFT is not set");
+        require(mnt != address(0), "MNT is not set");
     }
 
     function addressToBytes32(address _addr) internal pure returns (bytes32) {
         return bytes32(uint256(uint160(_addr)));
     }
 
-    /// @dev use:FOUNDRY_PROFILE=sepolia forge script scripts/foundry/SendOFT.s.sol --sig "sendOFT(string,address,uint256)" bsc 0xD3E476239EC4Bd04daf76A4f8BA4E56139a41b5c 100000000000000000000
+    /// @dev use:FOUNDRY_PROFILE=sepolia forge script scripts/foundry/SendOFT.s.sol --sig "sendOFTWithComposer(string,address,uint256)" hyper 0xD3E476239EC4Bd04daf76A4f8BA4E56139a41b5c 1
+    function sendOFTWithComposer(string memory toChain, address toAddress, uint256 amtWithoutDecimals) external {
+        require(bytes32(bytes(toChain)) != bytes32(bytes(networkName)), "Cannot send to the same chain");
+        require(composer != address(0), "Composer is not set");
+
+        address receiver = toAddress;
+        bytes memory composeMsg;
+        if (bytes32(bytes(toChain)) == bytes32(bytes("hyper"))) {
+            receiver = composer;
+            composeMsg = abi.encode(toAddress);
+        }
+        uint256 amount = amtWithoutDecimals * 10 ** 18;
+        _sendOFT(toChain, receiver, amount, composeMsg);
+    }
+
+    /// @dev use:FOUNDRY_PROFILE=sepolia forge script scripts/foundry/SendOFT.s.sol --sig "sendOFTWithComposerAndDecimals(string,address,uint256)" hyper 0xD3E476239EC4Bd04daf76A4f8BA4E56139a41b5c 100000000000000000000
+    function sendOFTWithComposerAndDecimals(string memory toChain, address toAddress, uint256 amount) external {
+        require(bytes32(bytes(toChain)) != bytes32(bytes(networkName)), "Cannot send to the same chain");
+        require(composer != address(0), "Composer is not set");
+
+        address receiver = toAddress;
+        bytes memory composeMsg;
+        if (bytes32(bytes(toChain)) == bytes32(bytes("hyper"))) {
+            receiver = composer;
+            composeMsg = abi.encode(toAddress);
+        }
+        _sendOFT(toChain, receiver, amount, composeMsg);
+    }
+
+    /// @dev use:FOUNDRY_PROFILE=sepolia forge script scripts/foundry/SendOFT.s.sol --sig "sendOFT(string,address,uint256)" bsc 0xD3E476239EC4Bd04daf76A4f8BA4E56139a41b5c 1
     function sendOFT(string memory toChain, address toAddress, uint256 amtWithoutDecimals) external {
         require(bytes32(bytes(toChain)) != bytes32(bytes(networkName)), "Cannot send to the same chain");
 
         uint256 amount = amtWithoutDecimals * 10 ** 18;
+        _sendOFT(toChain, toAddress, amount, "");
+    }
+
+    /// @dev use:FOUNDRY_PROFILE=sepolia forge script scripts/foundry/SendOFT.s.sol --sig "sendOFTWithDecimals(string,address,uint256)" bsc 0xD3E476239EC4Bd04daf76A4f8BA4E56139a41b5c 100000000000000000000
+    function sendOFTWithDecimals(string memory toChain, address toAddress, uint256 amount) external {
+        require(bytes32(bytes(toChain)) != bytes32(bytes(networkName)), "Cannot send to the same chain");
+        _sendOFT(toChain, toAddress, amount, "");
+    }
+
+    /// @dev use:FOUNDRY_PROFILE=sepolia forge script scripts/foundry/SendOFT.s.sol --sig "sendOFTWithComposerRefund(string,address,uint256)" hyper 0x0000000000000000000000000000000000000001 1
+    function sendOFTWithComposerRefund(string memory toChain, address toAddress, uint256 amtWithoutDecimals) external {
+        require(bytes32(bytes(toChain)) != bytes32(bytes(networkName)), "Cannot send to the same chain");
+        require(bytes32(bytes(toChain)) == bytes32(bytes("hyper")), "Only HyperEVM is supported");
+        require(bytes32(bytes(networkKey)) == bytes32(bytes("testnet")), "Only HyperEVM testnet is supported");
+        require(composer != address(0), "Composer is not set");
+
+        address receiver = composer;
+        // construct a meaningless wrong compose message to refund the sender
+        bytes memory composeMsg = abi.encodePacked(keccak256(abi.encode(toAddress)));
+        uint256 amount = amtWithoutDecimals * 10 ** 18;
+        _sendOFT(toChain, receiver, amount, composeMsg);
+    }
+
+    function _sendOFT(string memory toChain, address toAddress, uint256 amount, bytes memory composeMsg) internal {
         uint32 dstEid = uint32(config.readUint(string.concat(".lz.", toChain, ".", networkKey, ".eid")));
 
         console.log("Sending tokens to", toChain, "on EID", dstEid);
@@ -56,7 +114,7 @@ contract SendOFT is BaseScript {
             amountLD: amount,
             minAmountLD: amount * 95 / 100, // 5% slippage tolerance
             extraOptions: "",
-            composeMsg: "",
+            composeMsg: composeMsg,
             oftCmd: ""
         });
 

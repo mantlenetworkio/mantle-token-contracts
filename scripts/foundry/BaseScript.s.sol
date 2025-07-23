@@ -60,7 +60,7 @@ contract BaseScript is Script {
         } else if (chainid == 998) {
             return ("hyper", false);
         } else {
-            return ("unknown", false);
+            revert("Unknown network");
         }
     }
 
@@ -144,6 +144,7 @@ contract BaseScript is Script {
 
     function _upgradeProxy(address proxy, address impl, bytes memory callData) internal {
         address oldImpl = address(uint160(uint256(vm.load(proxy, ERC1967Utils.IMPLEMENTATION_SLOT))));
+        console.log("oldImpl", oldImpl);
         if (oldImpl == impl) {
             console.log("Proxy's current implementation is the same as the new implementation:", impl);
             return;

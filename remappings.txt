@@ -9,6 +9,7 @@ solidity-bytes-utils/=lib/solidity-bytes-utils/
 @layerzerolabs/oapp-evm-upgradeable/=node_modules/@layerzerolabs/oapp-evm-upgradeable
 @layerzerolabs/oft-evm/=node_modules/@layerzerolabs/oft-evm
 @layerzerolabs/oapp-evm/=node_modules/@layerzerolabs/oapp-evm
+@layerzerolabs/hyperliquid-composer/=node_modules/@layerzerolabs/hyperliquid-composer
 @openzeppelin/contracts-upgradeable-v4/=node_modules/@openzeppelin/contracts-upgradeable-v4
 @openzeppelin/contracts-v4/=node_modules/@openzeppelin/contracts-v4
 @openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable

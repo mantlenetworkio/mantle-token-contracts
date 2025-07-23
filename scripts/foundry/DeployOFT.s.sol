@@ -5,6 +5,7 @@ import "./BaseScript.s.sol";
 import { MantleOFTUpgradeable } from "contracts/OFT/MantleOFTUpgradeable.sol";
 import { MantleOFTAdapterUpgradeable } from "contracts/OFT/MantleOFTAdapterUpgradeable.sol";
 import { MantleOFTHyperEVMUpgradeable } from "contracts/OFT/MantleOFTHyperEVMUpgradeable.sol";
+import { HyperLiquidComposer } from "@layerzerolabs/hyperliquid-composer/contracts/HyperLiquidComposer.sol";
 
 /// @title OFTDeploymentScript
 /// @notice Script for deploying OFT and OFTAdapter contracts
@@ -29,6 +30,10 @@ contract OFTDeploymentScript is BaseScript {
     string public oftImplSalt;
     string public oftProxySalt;
 
+    // HyperLiquid Composer parameters
+    uint64 public coreIndexId;
+    int64 public assetDecimalDiff;
+
     function setUp() public override {
         super.setUp();
 
@@ -36,9 +41,17 @@ contract OFTDeploymentScript is BaseScript {
         delegate = config.readAddress(string.concat(".deploy.delegate"));
         mnt = config.readAddress(string.concat(".mnt.", networkKey));
         oftAdapter = _readDeployment(string.concat(".oft.eth.", networkKey));
+        oft = _readDeployment(string.concat(".oft.", networkName, ".", networkKey));
         oftAdapterImplSalt = config.readString(".salt.oft_adapter_impl");
         oftImplSalt = config.readString(".salt.oft_impl");
         oftProxySalt = config.readString(".salt.oft_proxy");
+
+        coreIndexId = uint64(config.readUint(string.concat(".deploy.hyperliquid_composer.core_index_id")));
+        assetDecimalDiff = int64(config.readInt(string.concat(".deploy.hyperliquid_composer.asset_decimal_diff")));
+
+        require(endpoint != address(0), "Endpoint is not set");
+        require(delegate != address(0), "Delegate is not set");
+        require(mnt != address(0), "MNT is not set");
     }
 
     /// @dev use: FOUNDRY_PROFILE=sepolia forge script scripts/foundry/deployOFT.s.sol --sig "deployOFTAdapter()"
@@ -121,5 +134,29 @@ contract OFTDeploymentScript is BaseScript {
 
         console.log("\n=== DEPLOYMENT SUMMARY ===");
         console.log("MantleOFT:", oft);
+    }
+
+    /// @dev use: FOUNDRY_PROFILE=hyper-testnet forge script scripts/foundry/DeployOFT.s.sol --sig "deployHyperLiquidComposer()"
+    function deployHyperLiquidComposer() public {
+        require(oft != address(0), "OFT is not set");
+        require(coreIndexId != 0, "Core Index ID is not set");
+        require(assetDecimalDiff != 0, "Asset Decimal Diff is not set");
+
+        console.log("Deploying HyperLiquidComposer...");
+        console.log("LayerZero Endpoint:", endpoint);
+        console.log("OFT:", oft);
+        console.log("Core Index ID:", coreIndexId);
+        console.log("Asset Decimal Diff:", assetDecimalDiff);
+
+        vm.startBroadcast(deployerPrivateKey);
+
+        HyperLiquidComposer composer = new HyperLiquidComposer(endpoint, oft, coreIndexId, assetDecimalDiff);
+
+        _writeDeployment(string.concat(".hyperliquid_composer.", networkKey), address(composer));
+
+        vm.stopBroadcast();
+
+        console.log("\n=== DEPLOYMENT SUMMARY ===");
+        console.log("HyperLiquidComposer:", address(composer));
     }
 }
