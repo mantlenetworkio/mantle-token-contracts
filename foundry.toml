@@ -5,6 +5,7 @@ libs = ['lib']
 test = 'test/foundry'
 cache_path  = 'forge-cache'
 
+evm_version = "cancun"
 bytecode_hash = "none"
 cbor_metadata = false
 always_use_create_2_factory = true
