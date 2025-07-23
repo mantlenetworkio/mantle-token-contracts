@@ -54,12 +54,17 @@ contract MantleOFTTest is Test {
         oftAdapter = MantleOFTAdapterUpgradeable(proxy);
     }
 
-    function test_MantleOFTUpgradeable_Constructor() public {
+    function test_MantleOFTUpgradeable_Constructor() public view {
         // Test that constructor properly sets the endpoint
         assertEq(address(oft.endpoint()), lzEndpoint, "LZ endpoint should be set correctly");
     }
 
-    function test_MantleOFTUpgradeable_Initialize() public {
+    function test_MantleOFTUpgradeable_Constructor_RevertIfEndpointIsZeroAddress() public {
+        vm.expectRevert("lzEndpoint is required");
+        new MantleOFTUpgradeable(address(0));
+    }
+
+    function test_MantleOFTUpgradeable_Initialize() public view {
         // Verify token properties
         assertEq(oft.name(), TOKEN_NAME, "Token name should be set correctly");
         assertEq(oft.symbol(), TOKEN_SYMBOL, "Token symbol should be set correctly");
@@ -77,13 +82,13 @@ contract MantleOFTTest is Test {
         oft.initialize(TOKEN_NAME, TOKEN_SYMBOL, owner);
     }
 
-    function test_MantleOFTAdapterUpgradeable_Constructor() public {
+    function test_MantleOFTAdapterUpgradeable_Constructor() public view {
         // Test that constructor properly sets the token and endpoint
         assertEq(oftAdapter.token(), token, "Token should be set correctly");
         assertEq(address(oftAdapter.endpoint()), lzEndpoint, "LZ endpoint should be set correctly");
     }
 
-    function test_MantleOFTAdapterUpgradeable_Initialize() public {
+    function test_MantleOFTAdapterUpgradeable_Initialize() public view {
         // Verify ownership
         assertEq(oftAdapter.owner(), owner, "Owner should be set correctly");
 
