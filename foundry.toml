@@ -21,6 +21,15 @@ eth_rpc_url="https://bsc-testnet-rpc.publicnode.com"
 [profile.hyper-testnet]
 eth_rpc_url="https://rpc.hyperliquid-testnet.xyz/evm"
 
+[profile.eth-mainnet]
+eth_rpc_url="https://eth.llamarpc.com"
+
+[profile.bsc-mainnet]
+eth_rpc_url="https://bsc.drpc.org"
+
+[profile.hyper-mainnet]
+eth_rpc_url="https://rpc.hyperliquid.xyz/evm"
+
 [fmt]
 line_length = 120
 tab_width = 4

@@ -85,6 +85,22 @@ contract ConfigOFT is BaseScript {
         require(vm.load(oft, slot) == bytes32(uint256(uint160(hyperCoreDeployer))), "HyperCore deployer mismatch");
     }
 
+    /// @dev use: FOUNDRY_PROFILE=sepolia forge script scripts/foundry/ConfigOFT.s.sol --sig "transferOwnership(address)" 0xD3E476239EC4Bd04daf76A4f8BA4E56139a41b5c
+    function transferOwnership(address newOwner) external {
+        require(newOwner != address(0), "newOwner cannot be the zero address");
+        require(newOwner != oft, "newOwner cannot be the same as oft");
+
+        address currentOwner = MantleOFTHyperEVMUpgradeable(oft).owner();
+        console.log("current owner", currentOwner);
+        console.log("new owner", newOwner);
+
+        vm.startBroadcast(deployerPrivateKey);
+        MantleOFTHyperEVMUpgradeable(oft).transferOwnership(newOwner);
+        vm.stopBroadcast();
+
+        require(MantleOFTHyperEVMUpgradeable(oft).owner() == newOwner, "Ownership transfer failed");
+    }
+
     function _setConfig(bool send, string memory from, string memory to) internal {
         console.log("configuring from", from, "to", to);
 
