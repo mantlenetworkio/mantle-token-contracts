@@ -189,37 +189,24 @@ contract ConfigOFT is BaseScript {
         string[] memory dsts = config.readStringArray(string.concat(key, ".dsts"));
         uint256[] memory dstEids = new uint256[](dsts.length);
         uint256[] memory receiveGasOptions = config.readUintArray(string.concat(key, ".lzReceive_gas_options"));
-        uint256[] memory composeGasOptions = config.readUintArray(string.concat(key, ".lzCompose_gas_options"));
         require(dsts.length == receiveGasOptions.length, "dsts and receiveGasOptions must have the same length");
-        require(dsts.length == composeGasOptions.length, "dsts and composeGasOptions must have the same length");
 
         for (uint256 i; i < dsts.length; i++) {
             dstEids[i] = uint256(config.readUint(string.concat(".lz.", dsts[i], ".", networkKey, ".eid")));
             console.log("dst", dsts[i], dstEids[i]);
             console.log("receiveGasOptions", receiveGasOptions[i]);
-            console.log("composeGasOptions", composeGasOptions[i]);
         }
 
         // Message type (should match your contract's constant)
         uint16 SEND = 1; // Message type for sendString function
-        uint16 SEND_AND_CALL = 2; // Message type for sendStringAndCall function
+        // uint16 SEND_AND_CALL = 2; // Message type for sendStringAndCall function
 
         // Create enforced options array
         EnforcedOptionParam[] memory enforcedOptions = new EnforcedOptionParam[](dstEids.length);
         for (uint256 i; i < dstEids.length; i++) {
             bytes memory options =
                 OptionsBuilder.newOptions().addExecutorLzReceiveOption(uint128(receiveGasOptions[i]), 0);
-            if (composeGasOptions[i] > 0) {
-                require(
-                    bytes32(bytes(dsts[i])) == bytes32(bytes("hyper")),
-                    "lzCompose_gas_options is only available for HyperEVM"
-                );
-                options = options.addExecutorLzComposeOption(0, uint128(composeGasOptions[i]), 0);
-                enforcedOptions[i] =
-                    EnforcedOptionParam({ eid: uint32(dstEids[i]), msgType: SEND_AND_CALL, options: options });
-            } else {
-                enforcedOptions[i] = EnforcedOptionParam({ eid: uint32(dstEids[i]), msgType: SEND, options: options });
-            }
+            enforcedOptions[i] = EnforcedOptionParam({ eid: uint32(dstEids[i]), msgType: SEND, options: options });
         }
 
         vm.startBroadcast(deployerPrivateKey);

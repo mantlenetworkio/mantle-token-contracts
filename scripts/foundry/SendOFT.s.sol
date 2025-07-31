@@ -107,13 +107,18 @@ contract SendOFT is BaseScript {
         }
 
         // Build send parameters
-        // bytes memory extraOptions = OptionsBuilder.newOptions().addExecutorLzReceiveOption(65000, 0);
+        bytes memory extraOptions;
+        if (composeMsg.length > 0) {
+            require(bytes32(bytes(toChain)) == bytes32(bytes("hyper")), "composeMsg is only available for HyperEVM");
+            extraOptions = OptionsBuilder.newOptions().addExecutorLzComposeOption(0, 100000, 0);
+        }
+
         SendParam memory sendParam = SendParam({
             dstEid: dstEid,
             to: addressToBytes32(toAddress),
             amountLD: amount,
             minAmountLD: amount * 95 / 100, // 5% slippage tolerance
-            extraOptions: "",
+            extraOptions: extraOptions,
             composeMsg: composeMsg,
             oftCmd: ""
         });
