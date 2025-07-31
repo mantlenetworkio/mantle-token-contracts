@@ -33,7 +33,6 @@ hypercore_deployer = "0xD3E476239EC4Bd04daf76A4f8BA4E56139a41b5c"
 [config.eth.enforced_options]
 dsts = ["bsc", "hyper"]
 lzReceive_gas_options = [80000, 80000]
-lzCompose_gas_options = [0, 100000]
 
 [config.eth.bsc.send]
 confirmations = 15
@@ -62,25 +61,24 @@ dvns = ["mantle"]
 [config.bsc.enforced_options]
 dsts = ["eth", "hyper"]
 lzReceive_gas_options = [80000, 80000]
-lzCompose_gas_options = [0, 100000]
 
 [config.bsc.eth.send]
-confirmations = 15
+confirmations = 20
 req_dvn_count = 2
 dvns = ["lz", "mantle"]
 
 [config.bsc.eth.receive]
-confirmations = 15
+confirmations = 20
 req_dvn_count = 2
 dvns = ["lz", "mantle"]
 
 [config.bsc.hyper.send]
-confirmations = 15
+confirmations = 20
 req_dvn_count = 1
 dvns = ["mantle"]
 
 [config.bsc.hyper.receive]
-confirmations = 15
+confirmations = 20
 req_dvn_count = 1
 dvns = ["mantle"]
 
@@ -94,22 +92,22 @@ lzReceive_gas_options = [80000, 80000]
 lzCompose_gas_options = [0, 0]
 
 [config.hyper.eth.send]
-confirmations = 15
+confirmations = 1
 req_dvn_count = 1
 dvns = ["mantle"]
 
 [config.hyper.eth.receive]
-confirmations = 15
+confirmations = 1
 req_dvn_count = 1
 dvns = ["mantle"]
 
 [config.hyper.bsc.send]
-confirmations = 15
+confirmations = 1
 req_dvn_count = 1
 dvns = ["mantle"]
 
 [config.hyper.bsc.receive]
-confirmations = 15
+confirmations = 1
 req_dvn_count = 1
 dvns = ["mantle"]
 

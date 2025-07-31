@@ -101,6 +101,23 @@ contract ConfigOFT is BaseScript {
         require(MantleOFTHyperEVMUpgradeable(oft).owner() == newOwner, "Ownership transfer failed");
     }
 
+    /// @dev use: FOUNDRY_PROFILE=sepolia forge script scripts/foundry/ConfigOFT.s.sol --sig "getConfig(string,bool)" eth true
+    function getConfig(string memory remoteChain, bool send) external view {
+        require(
+            bytes32(bytes(remoteChain)) != bytes32(bytes(networkName)), "remoteChain cannot be the same as networkName"
+        );
+        string memory direction = send
+            ? string.concat(networkName, " \u2192 ", remoteChain)
+            : string.concat(remoteChain, " \u2192 ", networkName);
+        console.log("get config", direction, send ? "send" : "receive");
+        _getConfig(
+            endpoint,
+            oft,
+            send ? sendLib : receiveLib,
+            uint32(config.readUint(string.concat(".lz.", remoteChain, ".", networkKey, ".eid")))
+        );
+    }
+
     function _setConfig(bool send, string memory from, string memory to) internal {
         console.log("configuring from", from, "to", to);
 
