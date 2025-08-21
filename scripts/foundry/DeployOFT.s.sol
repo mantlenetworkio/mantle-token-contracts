@@ -63,7 +63,7 @@ contract OFTDeploymentScript is BaseScript {
         console.log("LayerZero Endpoint:", endpoint);
         console.log("Delegate:", delegate);
 
-        vm.startBroadcast(deployerPrivateKey);
+        _startBroadcast();
 
         address impl =
             _create2(oftAdapterImplSalt, type(MantleOFTAdapterUpgradeable).creationCode, abi.encode(mnt, endpoint));
@@ -78,7 +78,7 @@ contract OFTDeploymentScript is BaseScript {
             _upgradeProxy(oftAdapter, impl, bytes(""));
         }
 
-        vm.stopBroadcast();
+        _stopBroadcast();
 
         console.log("OFTAdapter Token:", MantleOFTAdapterUpgradeable(oftAdapter).token());
         console.log("OFTAdapter Approval Required:", MantleOFTAdapterUpgradeable(oftAdapter).approvalRequired());
@@ -100,7 +100,7 @@ contract OFTDeploymentScript is BaseScript {
 
         bool onHyperEvm = bytes32(bytes(networkName)) == bytes32(bytes("hyper"));
 
-        vm.startBroadcast(deployerPrivateKey);
+        _startBroadcast();
 
         address impl;
         if (onHyperEvm) {
@@ -117,7 +117,7 @@ contract OFTDeploymentScript is BaseScript {
         );
         _writeDeployment(string.concat(".oft.", networkName, ".", networkKey), oft);
 
-        vm.stopBroadcast();
+        _stopBroadcast();
 
         if (onHyperEvm) {
             // try to set and check HyperCoreDeployer
@@ -148,13 +148,13 @@ contract OFTDeploymentScript is BaseScript {
         console.log("Core Index ID:", coreIndexId);
         console.log("Asset Decimal Diff:", assetDecimalDiff);
 
-        vm.startBroadcast(deployerPrivateKey);
+        _startBroadcast();
 
         HyperLiquidComposer composer = new HyperLiquidComposer(endpoint, oft, coreIndexId, assetDecimalDiff);
 
         _writeDeployment(string.concat(".hyperliquid_composer.", networkKey), address(composer));
 
-        vm.stopBroadcast();
+        _stopBroadcast();
 
         console.log("\n=== DEPLOYMENT SUMMARY ===");
         console.log("HyperLiquidComposer:", address(composer));

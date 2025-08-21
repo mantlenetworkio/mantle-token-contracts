@@ -35,7 +35,14 @@ contract BaseScript is Script {
 
     function setUp() public virtual {
         deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        deployerAddress = vm.addr(deployerPrivateKey);
+        if (deployerPrivateKey == 0) {
+            deployerAddress = vm.envAddress("DEPLOYER_ADDRESS");
+            if (deployerAddress == address(0)) {
+                revert("DEPLOYER_ADDRESS is not set");
+            }
+        } else {
+            deployerAddress = vm.addr(deployerPrivateKey);
+        }
         console.log("deployerAddress", deployerAddress);
 
         (networkName, isMainnet) = _getNetworkInfo();
@@ -43,6 +50,18 @@ contract BaseScript is Script {
 
         config = vm.readFile(CONFIG_TOML_PATH);
         deployment = vm.readFile(DEPLOYMENT_JSON_PATH);
+    }
+
+    function _startBroadcast() internal {
+        if (deployerPrivateKey == 0) {
+            vm.startBroadcast();
+        } else {
+            vm.startBroadcast(deployerPrivateKey);
+        }
+    }
+
+    function _stopBroadcast() internal {
+        vm.stopBroadcast();
     }
 
     function _getNetworkInfo() internal view returns (string memory name, bool mainnet) {

@@ -79,9 +79,9 @@ contract ConfigOFT is BaseScript {
         address currentHyperCoreDeployer = address(uint160(uint256(vm.load(oft, slot))));
         console.log("current hypercore deployer", currentHyperCoreDeployer);
         require(currentHyperCoreDeployer != hyperCoreDeployer, "HyperCore deployer is already set");
-        vm.startBroadcast(deployerPrivateKey);
+        _startBroadcast();
         MantleOFTHyperEVMUpgradeable(oft).setHyperCoreDeployer(hyperCoreDeployer);
-        vm.stopBroadcast();
+        _stopBroadcast();
         require(vm.load(oft, slot) == bytes32(uint256(uint160(hyperCoreDeployer))), "HyperCore deployer mismatch");
     }
 
@@ -94,9 +94,9 @@ contract ConfigOFT is BaseScript {
         console.log("current owner", currentOwner);
         console.log("new owner", newOwner);
 
-        vm.startBroadcast(deployerPrivateKey);
+        _startBroadcast();
         MantleOFTHyperEVMUpgradeable(oft).transferOwnership(newOwner);
-        vm.stopBroadcast();
+        _stopBroadcast();
 
         require(MantleOFTHyperEVMUpgradeable(oft).owner() == newOwner, "Ownership transfer failed");
     }
@@ -165,7 +165,7 @@ contract ConfigOFT is BaseScript {
         SetConfigParam[] memory params = new SetConfigParam[](1);
         params[0] = SetConfigParam(eid, ULN_CONFIG_TYPE, encodedUln);
 
-        vm.startBroadcast(deployerPrivateKey);
+        _startBroadcast();
 
         ILayerZeroEndpointV2(endpoint).setConfig(oft, lib, params); // Set config for messages sent from A to B
 
@@ -176,7 +176,7 @@ contract ConfigOFT is BaseScript {
             IOAppCore(oft).setPeer(eid, bytes32(uint256(uint160(peer))));
         }
 
-        vm.stopBroadcast();
+        _stopBroadcast();
 
         _getConfig(endpoint, oft, lib, eid);
     }
@@ -209,12 +209,12 @@ contract ConfigOFT is BaseScript {
             enforcedOptions[i] = EnforcedOptionParam({ eid: uint32(dstEids[i]), msgType: SEND, options: options });
         }
 
-        vm.startBroadcast(deployerPrivateKey);
+        _startBroadcast();
 
         // Set enforced options on the OApp
         IOAppOptionsType3(oft).setEnforcedOptions(enforcedOptions);
 
-        vm.stopBroadcast();
+        _stopBroadcast();
 
         console.log("Enforced options set successfully!");
     }

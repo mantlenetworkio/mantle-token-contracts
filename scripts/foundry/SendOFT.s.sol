@@ -96,7 +96,7 @@ contract SendOFT is BaseScript {
         console.log("Amount:", amount);
         console.log("To address:", toAddress);
 
-        vm.startBroadcast(deployerPrivateKey);
+        _startBroadcast();
 
         // Approve the OFT contract to spend the tokens if needed
         if (bytes32(bytes(networkName)) == bytes32(bytes("eth"))) {
@@ -132,6 +132,6 @@ contract SendOFT is BaseScript {
         // Send tokens
         IOFT(oft).send{ value: fee.nativeFee }(sendParam, fee, msg.sender);
 
-        vm.stopBroadcast();
+        _stopBroadcast();
     }
 }
