@@ -13,3 +13,5 @@ artifacts
 forge-cache
 out
 broadcast
+
+__pycache__

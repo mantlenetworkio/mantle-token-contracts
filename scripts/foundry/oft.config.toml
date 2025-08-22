@@ -89,7 +89,6 @@ dvns = ["mantle"]
 [config.hyper.enforced_options]
 dsts = ["eth", "bsc"]
 lzReceive_gas_options = [80000, 80000]
-lzCompose_gas_options = [0, 0]
 
 [config.hyper.eth.send]
 confirmations = 1

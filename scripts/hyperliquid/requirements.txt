@@ -1,0 +1,5 @@
+web3>=7.0.0
+ledgereth>=0.10.0
+requests>=2.0.0
+hyperliquid-python-sdk>=0.15.0
+python-dotenv>=1.0.0
