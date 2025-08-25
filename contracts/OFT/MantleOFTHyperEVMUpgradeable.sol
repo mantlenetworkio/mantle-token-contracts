@@ -21,6 +21,7 @@ contract MantleOFTHyperEVMUpgradeable is OFTUpgradeable {
     }
 
     function setHyperCoreDeployer(address _hyperCoreDeployer) public onlyOwner {
+        require(_hyperCoreDeployer != address(0), "hyperCoreDeployer set to zero address");
         assembly {
             sstore(HyperCoreDeployerSlot, _hyperCoreDeployer)
         }
