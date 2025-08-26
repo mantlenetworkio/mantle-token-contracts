@@ -1,0 +1,31 @@
+{
+  "coreSpot": {
+    "name": "MNT",
+    "szDecimals": 2,
+    "weiDecimals": 8,
+    "index": 1377,
+    "tokenId": "0x0a8f7f7541447eff6090304ad20cfb5f",
+    "isCanonical": false,
+    "evmContract": null,
+    "fullName": "Mantle",
+    "deployerTradingFeeShare": "1.0"
+  },
+  "txData": {
+    "txHash": "0x1277cdf889d088ce106760d9ccf11e7f5588f168e858aa8799bf0b8b9550696b",
+    "nonce": 9,
+    "from": "0xD3E476239EC4Bd04daf76A4f8BA4E56139a41b5c",
+    "weiDiff": 10,
+    "assetBridgeAddress": "0x2000000000000000000000000000000000000561",
+    "connected": false
+  },
+  "userGenesis": {
+    "userAndWei": [
+      {
+        "address": "0x2000000000000000000000000000000000000561",
+        "wei": "18446744073709551615"
+      }
+    ],
+    "existingTokenAndWei": [],
+    "blacklistUsers": []
+  }
+}

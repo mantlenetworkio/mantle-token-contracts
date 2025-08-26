@@ -1,0 +1,20 @@
+{
+  "oft": {
+    "eth": {
+      "testnet": "0xDce36E15E4f674970aB745D4b7a6E1e3CD8D8Fa6",
+      "mainnet": "0x0000000000000000000000000000000000000000"
+    },
+    "bsc": {
+      "testnet": "0x9c38b8ba2fdbf2f2414dF70Ed62d93Ca492158E6",
+      "mainnet": "0x0000000000000000000000000000000000000000"
+    },
+    "hyper": {
+      "testnet": "0x9c38b8ba2fdbf2f2414dF70Ed62d93Ca492158E6",
+      "mainnet": "0x0000000000000000000000000000000000000000"
+    }
+  },
+  "hyperliquid_composer": {
+    "testnet": "0xCB949dd56eB78208547BA5b32dFBE59D7A350c6E",
+    "mainnet": "0x0000000000000000000000000000000000000000"
+  }
+}

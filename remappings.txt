@@ -1,3 +1,16 @@
 ds-test/=lib/forge-std/lib/ds-test/src/
 forge-std/=lib/forge-std/src/
 solmate/=lib/solmate/
+@layerzerolabs/lz-evm-protocol-v2/=lib/LayerZero-v2/packages/layerzero-v2/evm/protocol/
+@layerzerolabs/lz-evm-messagelib-v2/=lib/LayerZero-v2/packages/layerzero-v2/evm/messagelib/
+@layerzerolabs/lz-evm-oapp-v2/=lib/LayerZero-v2/packages/layerzero-v2/evm/oapp/
+solidity-bytes-utils/=lib/solidity-bytes-utils/
+@layerzerolabs/oft-evm-upgradeable/=node_modules/@layerzerolabs/oft-evm-upgradeable
+@layerzerolabs/oapp-evm-upgradeable/=node_modules/@layerzerolabs/oapp-evm-upgradeable
+@layerzerolabs/oft-evm/=node_modules/@layerzerolabs/oft-evm
+@layerzerolabs/oapp-evm/=node_modules/@layerzerolabs/oapp-evm
+@layerzerolabs/hyperliquid-composer/=node_modules/@layerzerolabs/hyperliquid-composer
+@openzeppelin/contracts-upgradeable-v4/=node_modules/@openzeppelin/contracts-upgradeable-v4
+@openzeppelin/contracts-v4/=node_modules/@openzeppelin/contracts-v4
+@openzeppelin/contracts-upgradeable/=node_modules/@openzeppelin/contracts-upgradeable
+@openzeppelin/contracts/=node_modules/@openzeppelin/contracts

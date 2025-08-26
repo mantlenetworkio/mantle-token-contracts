@@ -3,8 +3,8 @@ pragma solidity ^0.8.13;
 
 import "../../contracts/L1/L1MantleToken.sol";
 
-import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
-import "@openzeppelin/contracts/proxy/transparent/TransparentUpgradeableProxy.sol";
+import "@openzeppelin/contracts-v4/proxy/transparent/ProxyAdmin.sol";
+import "@openzeppelin/contracts-v4/proxy/transparent/TransparentUpgradeableProxy.sol";
 
 import "forge-std/Test.sol";
 import "./mocks/EmptyContract.sol";
