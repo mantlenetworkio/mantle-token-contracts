@@ -1,6 +1,4 @@
-[mnt]
-mainnet = "0x3c3a81e81dc49A522A592e7622A7E711c06bf354"
-testnet = "0x65e37B558F64E2Be5768DB46DF22F93d85741A9E"
+mnt = "0x65e37B558F64E2Be5768DB46DF22F93d85741A9E"
 
 [salt]
 oft_adapter_impl = "MantleOFTAdapterImpl"
@@ -115,31 +113,7 @@ dvns = ["mantle"]
 ##                      LayerZero                        ##
 ###########################################################
 
-[lz.eth.mainnet]
-eid = 30101
-endpoint = "0x1a44076050125825900e736c501f859c50fE728c"
-send_lib = "0xbB2Ea70C9E858123480642Cf96acbcCE1372dCe1"
-receive_lib = "0xc02Ab410f0734EFa3F14628780e6e695156024C2"
-dvns_name = ["lz", "mantle"]
-dvns_addr = ["0x589dedbd617e0cbcb916a9223f4d1300c294236b", "0x554833698ae0fb22ecc90b01222903fd62ca4b47"]
-
-[lz.bsc.mainnet]
-eid = 30102
-endpoint = "0x1a44076050125825900e736c501f859c50fE728c"
-send_lib = "0x9F8C645f2D0b2159767Bd6E0839DE4BE49e823DE"
-receive_lib = "0xB217266c3A98C8B2709Ee26836C98cf12f6cCEC1"
-dvns_name = ["lz", "mantle"]
-dvns_addr = ["0xfd6865c841c2d64565562fcc7e05e619a30615f0", "0x0000000000000000000000000000000000000000"]
-
-[lz.hyper.mainnet]
-eid = 30367
-endpoint = "0x3A73033C0b1407574C76BdBAc67f126f6b4a9AA9"
-send_lib = "0xfd76d9CB0Bac839725aB79127E7411fe71b1e3CA"
-receive_lib = "0x7cacBe439EaD55fa1c22790330b12835c6884a91"
-dvns_name = ["lz", "mantle"]
-dvns_addr = ["0xc097ab8cd7b053326dfe9fb3e3a31a0cce3b526f", "0xbbd228fa47a8e80fbbfb778abc56031fa2c038ce"]
-
-[lz.eth.testnet]
+[lz.eth]
 eid = 40161
 endpoint = "0x6EDCE65403992e310A62460808c4b910D972f10f"
 send_lib = "0xcc1ae8Cf5D3904Cef3360A9532B477529b177cCE"
@@ -147,7 +121,7 @@ receive_lib = "0xdAf00F5eE2158dD58E0d3857851c432E34A3A851"
 dvns_name = ["lz", "mantle"]
 dvns_addr = ["0x8eebf8b423b73bfca51a1db4b7354aa0bfca9193", "0x6943872cfc48f6b18f8b81d57816733d4545eca3"]
 
-[lz.bsc.testnet]
+[lz.bsc]
 eid = 40102
 endpoint = "0x6EDCE65403992e310A62460808c4b910D972f10f"
 send_lib = "0x55f16c442907e86D764AFdc2a07C2de3BdAc8BB7"
@@ -155,7 +129,7 @@ receive_lib = "0x188d4bbCeD671A7aA2b5055937F79510A32e9683"
 dvns_name = ["lz", "mantle"]
 dvns_addr = ["0x0ee552262f7b562efced6dd4a7e2878ab897d405", "0x1337afd780b599b0af07fb0043226f02bc7fe92f"]
 
-[lz.hyper.testnet]
+[lz.hyper]
 eid = 40362
 endpoint = "0xf9e1815F151024bDE4B7C10BAC10e8Ba9F6b53E1"
 send_lib = "0x43E505ba192aaC7BABdC1A796c87844171011684"
