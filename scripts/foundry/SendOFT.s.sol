@@ -22,7 +22,7 @@ contract SendOFT is BaseScript {
 
         oft = _readDeployment(string.concat(".oft.", networkName, ".", networkKey));
         composer = _readDeployment(string.concat(".hyperliquid_composer.", networkKey));
-        mnt = config.readAddress(string.concat(".mnt.", networkKey));
+        mnt = config.readAddress(".mnt");
 
         require(oft != address(0), "OFT is not set");
         require(mnt != address(0), "MNT is not set");
@@ -90,7 +90,7 @@ contract SendOFT is BaseScript {
     }
 
     function _sendOFT(string memory toChain, address toAddress, uint256 amount, bytes memory composeMsg) internal {
-        uint32 dstEid = uint32(config.readUint(string.concat(".lz.", toChain, ".", networkKey, ".eid")));
+        uint32 dstEid = uint32(config.readUint(string.concat(".lz.", toChain, ".eid")));
 
         console.log("Sending tokens to", toChain, "on EID", dstEid);
         console.log("Amount:", amount);

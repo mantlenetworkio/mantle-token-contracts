@@ -37,9 +37,9 @@ contract OFTDeploymentScript is BaseScript {
     function setUp() public override {
         super.setUp();
 
-        endpoint = config.readAddress(string.concat(".lz.", networkName, ".", networkKey, ".endpoint"));
+        endpoint = config.readAddress(string.concat(".lz.", networkName, ".endpoint"));
         delegate = config.readAddress(string.concat(".deploy.delegate"));
-        mnt = config.readAddress(string.concat(".mnt.", networkKey));
+        mnt = config.readAddress(".mnt");
         oftAdapter = _readDeployment(string.concat(".oft.eth.", networkKey));
         oft = _readDeployment(string.concat(".oft.", networkName, ".", networkKey));
         oftAdapterImplSalt = config.readString(".salt.oft_adapter_impl");

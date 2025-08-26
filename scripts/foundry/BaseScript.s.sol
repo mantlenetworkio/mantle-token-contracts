@@ -26,7 +26,8 @@ contract BaseScript is Script {
     bool public isMainnet;
 
     // Config
-    string constant CONFIG_TOML_PATH = "scripts/foundry/oft.config.toml";
+    string constant TESTNET_CONFIG_TOML_PATH = "scripts/foundry/oft.config.testnet.toml";
+    string constant MAINNET_CONFIG_TOML_PATH = "scripts/foundry/oft.config.mainnet.toml";
     string public config;
 
     // Deployment
@@ -48,7 +49,7 @@ contract BaseScript is Script {
         (networkName, isMainnet) = _getNetworkInfo();
         networkKey = isMainnet ? "mainnet" : "testnet";
 
-        config = vm.readFile(CONFIG_TOML_PATH);
+        config = vm.readFile(isMainnet ? MAINNET_CONFIG_TOML_PATH : TESTNET_CONFIG_TOML_PATH);
         deployment = vm.readFile(DEPLOYMENT_JSON_PATH);
     }
 

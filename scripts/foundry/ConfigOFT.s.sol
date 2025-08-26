@@ -30,9 +30,9 @@ contract ConfigOFT is BaseScript {
     function setUp() public override {
         super.setUp();
 
-        string memory network = string.concat(networkName, ".", networkKey);
+        string memory network = networkName;
         endpoint = config.readAddress(string.concat(".lz.", network, ".endpoint"));
-        oft = _readDeployment(string.concat(".oft.", network));
+        oft = _readDeployment(string.concat(".oft.", network, ".", networkKey));
         sendLib = config.readAddress(string.concat(".lz.", network, ".send_lib"));
         receiveLib = config.readAddress(string.concat(".lz.", network, ".receive_lib"));
         string[] memory dvnsName = config.readStringArray(string.concat(".lz.", network, ".dvns_name"));
@@ -114,7 +114,7 @@ contract ConfigOFT is BaseScript {
             endpoint,
             oft,
             send ? sendLib : receiveLib,
-            uint32(config.readUint(string.concat(".lz.", remoteChain, ".", networkKey, ".eid")))
+            uint32(config.readUint(string.concat(".lz.", remoteChain, ".eid")))
         );
     }
 
@@ -138,7 +138,7 @@ contract ConfigOFT is BaseScript {
         // Sort dvns in ascending order
         _sortAddresses(dvns);
 
-        uint32 eid = uint32(config.readUint(string.concat(".lz.", send ? to : from, ".", networkKey, ".eid")));
+        uint32 eid = uint32(config.readUint(string.concat(".lz.", send ? to : from, ".eid")));
         address lib = send ? sendLib : receiveLib;
 
         console.log("endpoint", endpoint);
@@ -192,7 +192,7 @@ contract ConfigOFT is BaseScript {
         require(dsts.length == receiveGasOptions.length, "dsts and receiveGasOptions must have the same length");
 
         for (uint256 i; i < dsts.length; i++) {
-            dstEids[i] = uint256(config.readUint(string.concat(".lz.", dsts[i], ".", networkKey, ".eid")));
+            dstEids[i] = uint256(config.readUint(string.concat(".lz.", dsts[i], ".eid")));
             console.log("dst", dsts[i], dstEids[i]);
             console.log("receiveGasOptions", receiveGasOptions[i]);
         }
