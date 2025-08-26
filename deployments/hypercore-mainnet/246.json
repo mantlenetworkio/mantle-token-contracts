@@ -1,0 +1,26 @@
+{
+  "coreSpot": {
+    "name": "WMNT",
+    "szDecimals": 2,
+    "weiDecimals": 8,
+    "index": 246,
+    "tokenId": "0x08e0dbf94cc66a239e00baefdd9ac2f6",
+    "isCanonical": false,
+    "evmContract": {
+      "address": "0x36721e62edea413dc5195c4ca9c5a7eb175feb6b",
+      "evm_extra_wei_decimals": 10
+    },
+    "fullName": "Mantle",
+    "deployerTradingFeeShare": "1.0"
+  },
+  "genesis": {
+    "userBalances": [
+      [
+        "0x20000000000000000000000000000000000000f6",
+        "184467440737.0955200195"
+      ]
+    ],
+    "existingTokenBalances": [],
+    "blacklistUsers": []
+  }
+}
