@@ -174,6 +174,10 @@ contract BaseScript is Script {
         console.log("Proxy upgraded to implementation:", impl);
     }
 
+    function _proxyAdmin(address proxy) internal view returns (address) {
+        return address(uint160(uint256(vm.load(proxy, ERC1967Utils.ADMIN_SLOT))));
+    }
+
     function _readDeployment(string memory key) internal view returns (address) {
         return vm.parseJsonAddress(deployment, key);
     }
