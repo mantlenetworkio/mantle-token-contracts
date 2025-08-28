@@ -10,7 +10,7 @@ oft_proxy = "MantleOFTProxy"
 ###########################################################
 
 [deploy]
-delegate = "0x0000000000000000000000000000000000000000"
+delegate = "0x207E804758e28F2b3fD6E4219671B327100b82f8"
 
 [deploy.hyperliquid_composer]
 core_index_id = 246
