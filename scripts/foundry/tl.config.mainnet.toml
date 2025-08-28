@@ -1,0 +1,5 @@
+[hyper]
+min_delay = 0
+proposers = ["0x2ad3694cec22523D1491a10645A35Fe3fA50Fdca"]
+executors = ["0x2ad3694cec22523D1491a10645A35Fe3fA50Fdca"]
+admin = "0x2ad3694cec22523D1491a10645A35Fe3fA50Fdca"

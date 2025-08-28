@@ -11,6 +11,7 @@ import { IOAppOptionsType3 } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/
 import { EnforcedOptionParam } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OAppOptionsType3.sol";
 import { OptionsBuilder } from "@layerzerolabs/lz-evm-oapp-v2/contracts/oapp/libs/OptionsBuilder.sol";
 import { MantleOFTHyperEVMUpgradeable } from "contracts/OFT/MantleOFTHyperEVMUpgradeable.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 /// @title LayerZero Send Configuration Script (A → B)
 /// @notice Defines and applies ULN (DVN) + Executor configs for cross‑chain messages sent from Chain A to Chain B via LayerZero Endpoint V2.
@@ -90,15 +91,36 @@ contract ConfigOFT is BaseScript {
         require(newOwner != address(0), "newOwner cannot be the zero address");
         require(newOwner != oft, "newOwner cannot be the same as oft");
 
-        address currentOwner = MantleOFTHyperEVMUpgradeable(oft).owner();
+        address currentOwner = Ownable(oft).owner();
         console.log("current owner", currentOwner);
         console.log("new owner", newOwner);
+        require(currentOwner != newOwner, "newOwner cannot be the same as current owner");
 
         _startBroadcast();
-        MantleOFTHyperEVMUpgradeable(oft).transferOwnership(newOwner);
+        Ownable(oft).transferOwnership(newOwner);
         _stopBroadcast();
 
-        require(MantleOFTHyperEVMUpgradeable(oft).owner() == newOwner, "Ownership transfer failed");
+        require(Ownable(oft).owner() == newOwner, "Ownership transfer failed");
+    }
+
+    /// @dev use: FOUNDRY_PROFILE=sepolia forge script scripts/foundry/ConfigOFT.s.sol --sig "transferProxyAdminOwnership(address)" <NEW_OWNER>
+    function transferProxyAdminOwnership(address newOwner) external {
+        require(newOwner != address(0), "newOwner cannot be the zero address");
+        require(newOwner != oft, "newOwner cannot be the same as oft");
+        address proxyAdmin = _proxyAdmin(oft);
+        console.log("proxyAdmin", proxyAdmin);
+        require(proxyAdmin != address(0), "proxyAdmin is not set. Is it a proxy?");
+        require(proxyAdmin != newOwner, "newOwner cannot be the same as proxyAdmin");
+
+        address currentOwner = Ownable(proxyAdmin).owner();
+        console.log("current owner", currentOwner);
+        console.log("newOwner", newOwner);
+        require(currentOwner != newOwner, "newOwner cannot be the same as current owner");
+
+        _startBroadcast();
+        Ownable(proxyAdmin).transferOwnership(newOwner);
+        _stopBroadcast();
+        require(Ownable(proxyAdmin).owner() == newOwner, "Ownership transfer failed");
     }
 
     /// @dev use: FOUNDRY_PROFILE=sepolia forge script scripts/foundry/ConfigOFT.s.sol --sig "getConfig(string,bool)" eth true

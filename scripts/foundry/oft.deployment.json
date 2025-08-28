@@ -16,5 +16,11 @@
   "hyperliquid_composer": {
     "testnet": "0xCB949dd56eB78208547BA5b32dFBE59D7A350c6E",
     "mainnet": "0x0000000000000000000000000000000000000000"
+  },
+  "timelock_controller": {
+    "hyper": {
+      "testnet": "0x0000000000000000000000000000000000000000",
+      "mainnet": "0x0000000000000000000000000000000000000000"
+    }
   }
 }
