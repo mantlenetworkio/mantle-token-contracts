@@ -6,6 +6,7 @@ import { MantleOFTUpgradeable } from "contracts/OFT/MantleOFTUpgradeable.sol";
 import { MantleOFTAdapterUpgradeable } from "contracts/OFT/MantleOFTAdapterUpgradeable.sol";
 import { MantleOFTHyperEVMUpgradeable } from "contracts/OFT/MantleOFTHyperEVMUpgradeable.sol";
 import { HyperLiquidComposer } from "@layerzerolabs/hyperliquid-composer/contracts/HyperLiquidComposer.sol";
+import { TimelockController } from "@openzeppelin/contracts/governance/TimelockController.sol";
 
 /// @title OFTDeploymentScript
 /// @notice Script for deploying OFT and OFTAdapter contracts
@@ -158,5 +159,48 @@ contract OFTDeploymentScript is BaseScript {
 
         console.log("\n=== DEPLOYMENT SUMMARY ===");
         console.log("HyperLiquidComposer:", address(composer));
+    }
+
+    /// @dev use: FOUNDRY_PROFILE=sepolia forge script scripts/foundry/DeployOFT.s.sol --sig "deployTimelockController()"
+    function deployTimelockController() public {
+        console.log("Deploying TimelockController...");
+        string memory testnetConfigPath = "scripts/foundry/tl.config.testnet.toml";
+        string memory mainnetConfigPath = "scripts/foundry/tl.config.mainnet.toml";
+
+        string memory tlConfig = vm.readFile(isMainnet ? mainnetConfigPath : testnetConfigPath);
+
+        uint256 minDelay = tlConfig.readUint(string.concat(".", networkName, ".min_delay"));
+        address[] memory proposers = tlConfig.readAddressArray(string.concat(".", networkName, ".proposers"));
+        address[] memory executors = tlConfig.readAddressArray(string.concat(".", networkName, ".executors"));
+        address admin = tlConfig.readAddress(string.concat(".", networkName, ".admin"));
+
+        console.log("Min Delay:", minDelay);
+        for (uint256 i = 0; i < proposers.length; i++) {
+            console.log("Proposer", i, proposers[i]);
+            require(proposers[i] != address(0), "Proposer should not be the zero address");
+        }
+        for (uint256 i = 0; i < executors.length; i++) {
+            console.log("Executor", i, executors[i]);
+            require(executors[i] != address(0), "Executor should not be the zero address");
+        }
+        console.log("Admin:", admin);
+        require(admin != address(0), "Admin should not be the zero address");
+
+        address timelock = _readDeployment(string.concat(".timelock_controller.", networkName, ".", networkKey));
+        if (timelock != address(0)) {
+            console.log("TimelockController already deployed at", timelock);
+            return;
+        }
+
+        _startBroadcast();
+
+        TimelockController tl = new TimelockController(minDelay, proposers, executors, admin);
+
+        _writeDeployment(string.concat(".timelock_controller.", networkName, ".", networkKey), address(tl));
+
+        _stopBroadcast();
+
+        console.log("\n=== DEPLOYMENT SUMMARY ===");
+        console.log("TimelockController:", address(tl));
     }
 }
