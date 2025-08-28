@@ -51,12 +51,12 @@ dsts = ["eth"]
 lzReceive_gas_options = [80000]
 
 [config.hyper.eth.send]
-confirmations = 1
+confirmations = 300
 req_dvn_count = 2
 dvns = ["lz", "mantle"]
 
 [config.hyper.eth.receive]
-confirmations = 1
+confirmations = 300
 req_dvn_count = 2
 dvns = ["lz", "mantle"]
 
